@@ -1,6 +1,6 @@
-use crate::cli::cli_parser::CliCmd;
+use crate::cli::CliCmd;
 use crate::cli::constants::DEFAULT_FILE;
-use crate::cli::{Cli, Command, InputSource};
+use crate::cli::{Cli, Commands, Source};
 use crate::error::{CliErrors, Error};
 
 const COMMAND_NAME: &str = "pick";
@@ -48,18 +48,18 @@ impl PickCmd {
 }
 
 impl CliCmd<PickCmd> for Cli {
-    fn try_from(cmd: PickCmd, stdin_input: Option<InputSource>) -> Result<Self, Error> {
+    fn try_from(cmd: PickCmd, stdin_input: Option<Source>) -> Result<Self, Error> {
         Ok(Cli {
             input: {
                 if let Some(file_name) = cmd.clone().file_name {
-                    Some(InputSource::FileName(file_name.to_string()))
+                    Some(Source::FileName(file_name.to_string()))
                 } else if let Some(input) = stdin_input {
                     Some(input)
                 } else {
-                    Some(InputSource::FileName(DEFAULT_FILE.to_string()))
+                    Some(Source::FileName(DEFAULT_FILE.to_string()))
                 }
             },
-            command: Some(Command::PickCmd(cmd)),
+            command: Some(Commands::PickCmd(cmd)),
         })
     }
 }

@@ -1,18 +1,6 @@
-use crate::cli::PickCmd;
-
 pub mod pick;
 pub mod list;
 pub mod format;
-pub mod lint;
-pub mod cli_cmd;
-
-#[derive(Clone, Debug)]
-pub enum Commands {
-    PickCmd(PickCmd),
-    FormatCmd,
-    ListCmd,
-    LintCmd,
-}
 
 /*
 /**************************

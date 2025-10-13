@@ -3,14 +3,14 @@ use crate::cli::constants::DEFAULT_FILE;
 use crate::cli::{Cli, Commands, Source};
 use crate::error::Error;
 
-const COMMAND_NAME: &str = "list";
+const COMMAND_NAME: &str = "format";
 
 #[derive(Clone, Debug)]
-pub struct ListCmd {
+pub struct FormatCmd {
     file_name: Option<String>,
 }
 
-impl ListCmd {
+impl FormatCmd {
     pub fn try_from(params: &[String]) -> Result<Option<Self>, Error> {
         let mut params_iter = params.iter();
         let cmd_token = match params_iter.next() {
@@ -25,16 +25,16 @@ impl ListCmd {
             None => (cmd_token.unwrap(), None),
         };
         match file_name {
-            Some(file_name) => Ok(Some(ListCmd {
+            Some(file_name) => Ok(Some(FormatCmd {
                 file_name: Some(file_name.to_string()),
             })),
-            None => Ok(Some(ListCmd { file_name: None })),
+            None => Ok(Some(FormatCmd { file_name: None })),
         }
     }
 }
 
-impl CliCmd<ListCmd> for Cli {
-    fn try_from(cmd: ListCmd, stdin_input: Option<Source>) -> Result<Self, Error> {
+impl CliCmd<FormatCmd> for Cli {
+    fn try_from(cmd: FormatCmd, stdin_input: Option<Source>) -> Result<Self, Error> {
         Ok(Cli {
             input: {
                 if let Some(file_name) = cmd.clone().file_name {
@@ -45,7 +45,7 @@ impl CliCmd<ListCmd> for Cli {
                     Some(Source::FileName(DEFAULT_FILE.to_string()))
                 }
             },
-            command: Some(Commands::ListCmd),
+            command: Some(Commands::FormatCmd),
         })
     }
 }
