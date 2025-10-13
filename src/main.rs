@@ -2,8 +2,9 @@ mod cli;
 mod error;
 mod parser;
 
+use std::fs;
 use crate::cli::{Cli, Command, InputSource};
-use crate::error::{AccessErrors, CliErrors};
+use crate::error::{AccessErrors, CliErrors, OtherErrors};
 use crate::parser::Parser;
 use std::process::exit;
 
@@ -32,7 +33,25 @@ fn main() {
                         Some(_) => {
                             match document.pick(pick_cmd.block_name.as_str()) {
                                 Ok(document) => {
-                                    print!("{}", document);
+                                    match &cli.input {
+                                        Some(InputSource::StdIn(_)) => {
+                                            print!("{}", document);
+                                        },
+                                        Some(InputSource::FileName(file_path)) => {
+                                            let content = format!("{}", document);
+                                            match fs::write(file_path, content) {
+                                                Ok(_) => (),
+                                                Err(_) => {
+                                                    eprintln!("{}", OtherErrors::Unknown);
+                                                    exit(1);
+                                                },
+                                            };
+                                        },
+                                        _ => {
+                                            eprintln!("{}", CliErrors::NoInputFound);
+                                            exit(1);
+                                        }
+                                    };
                                 }
                                 Err(error_type) => {
                                     eprintln!("{}", error_type);
