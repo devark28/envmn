@@ -1,9 +1,10 @@
-use crate::cli::PickCmd;
+use crate::cli::{PickCmd, VersionCmd};
 
 pub mod pick;
 pub mod list;
 pub mod format;
 pub mod lint;
+pub mod version;
 pub mod cli_cmd;
 
 #[derive(Clone, Debug)]
@@ -12,6 +13,7 @@ pub enum Commands {
     FormatCmd,
     ListCmd,
     LintCmd,
+    VersionCmd(VersionCmd),
 }
 
 /*

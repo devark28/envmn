@@ -19,6 +19,7 @@ impl Engine {
             Some(Commands::ListCmd) => Ok(self.process_list_cmd()),
             Some(Commands::FormatCmd) => Ok(self.process_format_cmd()),
             Some(Commands::PickCmd(pick_cmd)) => Ok(self.process_pick_cmd(pick_cmd)),
+            Some(Commands::VersionCmd(version_cmd)) => Ok(self.process_version_cmd(version_cmd)),
             None => Err(Error::CliError(CliErrors::NoOperationFound)),
         }
     }

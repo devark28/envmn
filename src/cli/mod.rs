@@ -3,15 +3,16 @@ mod constants;
 mod source;
 
 use crate::error::{CliErrors, Error};
-pub use commands::Commands;
 use commands::cli_cmd::CliCmd;
 pub use commands::format::FormatCmd;
 pub use commands::lint::LintCmd;
 pub use commands::list::ListCmd;
 pub use commands::pick::PickCmd;
+pub use commands::version::VersionCmd;
+pub use commands::Commands;
 pub use source::Source;
 use std::env;
-use std::io::{IsTerminal, Read, stdin};
+use std::io::{stdin, IsTerminal, Read};
 use std::ops::Deref;
 
 #[derive(Clone, Debug)]
@@ -37,7 +38,9 @@ impl Cli {
         if stdin_input.is_some() && params.is_empty() {
             return Err(Error::CliError(CliErrors::NoOperationFound));
         }
-        if let Some(cmd) = LintCmd::try_from(params.deref())? {
+        if let Some(cmd) = VersionCmd::try_from(params.deref())? {
+            <Cli as CliCmd<VersionCmd>>::try_from(cmd, stdin_input)
+        } else if let Some(cmd) = LintCmd::try_from(params.deref())? {
             <Cli as CliCmd<LintCmd>>::try_from(cmd, stdin_input)
         } else if let Some(cmd) = FormatCmd::try_from(params.deref())? {
             <Cli as CliCmd<FormatCmd>>::try_from(cmd, stdin_input)
