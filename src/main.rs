@@ -2,7 +2,7 @@ mod cli;
 mod error;
 mod parser;
 
-use crate::cli::{Cli, Source};
+use crate::cli::{Cli, Commands, Source};
 use crate::error::CliErrors;
 use crate::parser::{Engine, Parser};
 use std::process::exit;
@@ -14,6 +14,13 @@ fn main() {
             eprintln!("{}", error_type);
             exit(1);
         }
+    };
+    match &cli.command {
+        Some(Commands::VersionCmd(version_cmd)) => {
+            Engine::process_version_cmd(version_cmd.clone());
+            exit(0);
+        }
+        _ => (),
     };
     let parser = Parser::new();
     let Some(source) = &cli.input else {
@@ -37,6 +44,6 @@ fn main() {
             eprintln!("{}", error_type);
             exit(1);
         }
-        _ => ()
+        _ => (),
     }
 }
