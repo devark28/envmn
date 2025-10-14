@@ -5,6 +5,7 @@ pub mod list;
 pub mod format;
 pub mod lint;
 pub mod version;
+pub mod help;
 pub mod cli_cmd;
 
 #[derive(Clone, Debug)]
@@ -14,6 +15,7 @@ pub enum Commands {
     ListCmd,
     LintCmd,
     VersionCmd(VersionCmd),
+    HelpCmd,
 }
 
 /*

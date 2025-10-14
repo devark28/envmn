@@ -9,6 +9,7 @@ pub use commands::lint::LintCmd;
 pub use commands::list::ListCmd;
 pub use commands::pick::PickCmd;
 pub use commands::version::VersionCmd;
+pub use commands::help::HelpCmd;
 pub use commands::Commands;
 pub use source::Source;
 use std::env;
@@ -40,6 +41,8 @@ impl Cli {
         }
         if let Some(cmd) = VersionCmd::try_from(params.deref())? {
             <Cli as CliCmd<VersionCmd>>::try_from(cmd, stdin_input)
+        } else if let Some(cmd) = HelpCmd::try_from(params.deref())? {
+            <Cli as CliCmd<HelpCmd>>::try_from(cmd, stdin_input)
         } else if let Some(cmd) = LintCmd::try_from(params.deref())? {
             <Cli as CliCmd<LintCmd>>::try_from(cmd, stdin_input)
         } else if let Some(cmd) = FormatCmd::try_from(params.deref())? {

@@ -1,7 +1,8 @@
-pub mod pick;
-pub mod list;
-pub mod format;
+mod pick;
+mod list;
+mod format;
 mod version;
+mod help;
 /*
 /**************************
   CLI flags (short, long)

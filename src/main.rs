@@ -15,21 +15,34 @@ fn main() {
             exit(1);
         }
     };
-    match &cli.command {
-        Some(Commands::VersionCmd(version_cmd)) => {
+    let parser = Parser::new();
+    let result = match &cli {
+        Cli {
+            input: None,
+            command: Some(Commands::VersionCmd(version_cmd)),
+        } => {
             Engine::process_version_cmd(version_cmd.clone());
             exit(0);
         }
-        _ => (),
-    };
-    let parser = Parser::new();
-    let Some(source) = &cli.input else {
-        eprintln!("{}", CliErrors::NoInputFound);
-        exit(1);
-    };
-    let result = match source {
-        Source::StdIn(content) => parser.parse(content),
-        Source::FileName(name) => parser.parse_file(name),
+        Cli {
+            input: None,
+            command: Some(Commands::HelpCmd),
+        } => {
+            Engine::process_help_cmd();
+            exit(0);
+        }
+        Cli { input: None, .. } => {
+            eprintln!("{}", CliErrors::NoInputFound);
+            exit(1);
+        }
+        Cli {
+            input: Some(Source::StdIn(content)),
+            ..
+        } => parser.parse(content),
+        Cli {
+            input: Some(Source::FileName(name)),
+            ..
+        } => parser.parse_file(name),
     };
     let document = match result {
         Ok(document) => document,
