@@ -3,8 +3,9 @@ use crate::parser::constants;
 use crate::parser::tokens::Block;
 use crate::parser::tokens::Document;
 use crate::parser::tokens::variable::Variable;
-use crate::parser::validators::validate_block_name;
+use crate::parser::validators::{validate_block_name, validate_variable_name};
 use std::fs;
+use std::ops::Deref;
 
 pub struct Parser {
     pub document: Document,
@@ -68,8 +69,10 @@ impl Parser {
                         )));
                     }
                 };
+                validate_variable_name(idx as u16, variable.key.deref())?;
                 self.get_working_block_mut()?.add_variable(variable);
             } else {
+                // TODO: handle newlines (but they are reconstructed for formatting)
             }
         }
         Ok(self.document)

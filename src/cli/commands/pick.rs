@@ -63,19 +63,3 @@ impl CliCmd<PickCmd> for Cli {
         })
     }
 }
-
-/*impl TryInto<Cli> for PickCmd {
-    type Error = Box<dyn Error>;
-    fn try_into(self) -> Result<Cli, Self::Error> {
-        Ok(Cli {
-            input: if let Some(file_name) = self.clone().file_name {
-                Some(InputType::FileName(file_name.to_string()))
-            } else if let Some(input) = stdin_input() {
-                Some(input)
-            } else {
-                Some(InputType::FileName(DEFAULT_FILE.to_string()))
-            },
-            command: Some(CommandType::PickCmd(self)),
-        })
-    }
-}*/

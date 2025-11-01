@@ -3,13 +3,17 @@ mod error;
 mod parser;
 
 use crate::cli::{Cli, Commands, Source};
-use crate::error::CliErrors;
+use crate::error::{CliErrors, Error};
 use crate::parser::{Engine, Parser};
 use std::process::exit;
 
 fn main() {
     let cli = match Cli::init() {
         Ok(cli) => cli,
+        Err(Error::CliError(CliErrors::NoOperationFound)) => {
+            Engine::process_help_cmd();
+            exit(1);
+        }
         Err(error_type) => {
             eprintln!("{}", error_type);
             exit(1);
