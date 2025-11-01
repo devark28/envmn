@@ -1,6 +1,7 @@
 use crate::error::{AccessErrors, Error};
 use crate::parser::constants::{BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME};
 use crate::parser::tokens::line::Line;
+use crate::parser::tokens::token_name::TokenName;
 use crate::parser::tokens::variable::Variable;
 use std::fmt::{Display, Formatter};
 
@@ -123,5 +124,11 @@ impl Display for Block {
                     .join("\n")
             )
         }
+    }
+}
+
+impl TokenName for Block {
+    fn name() -> &'static str {
+        "Block"
     }
 }
