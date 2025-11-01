@@ -1,7 +1,8 @@
-mod document;
 mod block;
+mod document;
 mod line;
+pub mod token_name;
 pub mod variable;
 
-pub use document::Document;
 pub use block::Block;
+pub use document::Document;

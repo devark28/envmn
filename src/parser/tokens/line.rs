@@ -1,3 +1,4 @@
+use crate::parser::tokens::token_name::TokenName;
 use crate::parser::tokens::variable::Variable;
 use std::fmt::{Display, Formatter};
 
@@ -15,5 +16,11 @@ impl Display for Line {
             Line::Variable(variable) => write!(f, "{variable}"),
             Line::Empty => writeln!(f),
         }
+    }
+}
+
+impl TokenName for Line {
+    fn name() -> &'static str {
+        "Line"
     }
 }

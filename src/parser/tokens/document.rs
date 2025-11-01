@@ -1,6 +1,7 @@
 use crate::error::{AccessErrors, Error};
 use crate::parser::constants::DEFAULT_BLOCK_NAME;
 use crate::parser::tokens::block::Block;
+use crate::parser::tokens::token_name::TokenName;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -105,5 +106,11 @@ impl Iterator for Document {
     type Item = Block;
     fn next(&mut self) -> Option<Self::Item> {
         self.blocks.iter().next().cloned()
+    }
+}
+
+impl TokenName for Document {
+    fn name() -> &'static str {
+        "Document"
     }
 }
