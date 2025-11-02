@@ -1,10 +1,8 @@
 use crate::error::{Error, NamingErrors};
-use crate::parser::tokens::token_name::TokenName;
-use crate::parser::tokens::variable::Variable;
 
 pub fn validate_variable_name(line: u16, name: &str) -> Result<(), Error> {
     if name.is_empty() {
-        return Err(Error::NamingError(NamingErrors::NameEmpty(Variable::name())));
+        return Err(Error::NamingError(NamingErrors::VariableNameEmpty));
     }
 
     let mut chars = name.chars();
@@ -21,11 +19,9 @@ pub fn validate_variable_name(line: u16, name: &str) -> Result<(), Error> {
     if let Some(invalid_char) =
         chars.find(|&c| !(c.is_ascii_alphabetic() || c.is_ascii_digit() || c == '_'))
     {
-        return Err(Error::NamingError(NamingErrors::ContainsInvalidCharacter(
-            line,
-            invalid_char.to_string(),
-            Variable::name(),
-        )));
+        return Err(Error::NamingError(
+            NamingErrors::VariableContainsInvalidCharacter(line, invalid_char.to_string()),
+        ));
     }
 
     Ok(())
