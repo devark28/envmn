@@ -9,6 +9,8 @@ pub enum ParsingErrors {
     BlockNeverOpened(u16),
     ReservedWord(u16, String),
     BrokenValidator(String),
+    DuplicateBlock(String),
+    DuplicateVariable(String, String),
 }
 
 impl Display for ParsingErrors {
@@ -39,6 +41,15 @@ impl Display for ParsingErrors {
             }
             ParsingErrors::BrokenValidator(validator_name) => {
                 write!(f, "Validator '{validator_name}' is broken")
+            }
+            ParsingErrors::DuplicateBlock(name) => {
+                write!(f, "Duplicate block '{name}' found")
+            }
+            ParsingErrors::DuplicateVariable(name, token_name) => {
+                write!(
+                    f,
+                    "Duplicate variable '{name}' found in block '{token_name}'"
+                )
             }
         }
     }

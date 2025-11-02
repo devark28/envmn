@@ -1,7 +1,7 @@
-use crate::parser::tokens::token_name::TokenName;
 use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Eq, Ord, PartialOrd)]
 pub struct Variable {
     pub key: String,
     pub value: String,
@@ -22,8 +22,14 @@ impl Display for Variable {
     }
 }
 
-impl TokenName for Variable {
-    fn name() -> &'static str {
-        "Variable"
+impl PartialEq for Variable {
+    fn eq(&self, other: &Self) -> bool {
+        self.key == other.key
+    }
+}
+
+impl Hash for Variable {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.key.hash(state);
     }
 }

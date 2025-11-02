@@ -1,7 +1,6 @@
-use crate::error::{AccessErrors, Error};
+use crate::error::{AccessErrors, Error, ParsingErrors};
 use crate::parser::constants::DEFAULT_BLOCK_NAME;
 use crate::parser::tokens::block::Block;
-use crate::parser::tokens::token_name::TokenName;
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -16,17 +15,24 @@ impl Document {
             blocks: vec![Block::new(DEFAULT_BLOCK_NAME)],
         }
     }
-    pub fn add_block(&mut self, block: Block) {
+    pub fn add_block(&mut self, block: Block) -> Result<(), Error> {
+        let contains = self.blocks.contains(&block.clone());
+        if contains {
+            return Err(Error::ParsingError(ParsingErrors::DuplicateBlock(
+                block.name,
+            )));
+        }
         self.blocks.push(block);
-    }
-    pub fn update_block(&mut self, name: &str, new_block: Block) -> Result<(), Error> {
-        let pos = self.get_position(name)?;
-        self.blocks[pos] = new_block;
         Ok(())
     }
     pub fn remove_block(&mut self, name: &str) -> Result<(), Error> {
-        let pos = self.get_position(name)?;
-        self.blocks.remove(pos);
+        let contains = self.blocks.contains(&Block::new(name));
+        if !contains {
+            return Err(Error::AccessError(AccessErrors::BlockNotFound(
+                name.to_string(),
+            )));
+        }
+        self.blocks.retain(|l| l.clone() != Block::new(name));
         Ok(())
     }
     fn get_position(&self, name: &str) -> Result<usize, Error> {
@@ -106,11 +112,5 @@ impl Iterator for Document {
     type Item = Block;
     fn next(&mut self) -> Option<Self::Item> {
         self.blocks.iter().next().cloned()
-    }
-}
-
-impl TokenName for Document {
-    fn name() -> &'static str {
-        "Document"
     }
 }

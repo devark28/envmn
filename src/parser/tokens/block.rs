@@ -1,14 +1,12 @@
-use crate::error::{AccessErrors, Error};
+use crate::error::{AccessErrors, Error, ParsingErrors};
 use crate::parser::constants::{BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME};
 use crate::parser::tokens::line::Line;
-use crate::parser::tokens::token_name::TokenName;
 use crate::parser::tokens::variable::Variable;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq)]
 pub struct Block {
     pub name: String,
-    pub is_default: bool,
     lines: Vec<Line>,
 }
 
@@ -18,21 +16,27 @@ impl Block {
         Block {
             name: DEFAULT_BLOCK_NAME.to_string(),
             lines: vec![],
-            is_default: true,
         }
     }
     pub fn new(name: &str) -> Self {
         Block {
             name: name.to_string(),
             lines: vec![],
-            is_default: false,
         }
     }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
     }
-    pub fn add_variable(&mut self, variable: Variable) {
+    pub fn add_variable(&mut self, variable: Variable) -> Result<(), Error> {
+        let contains = self.lines.contains(&Line::Variable(variable.clone()));
+        if contains {
+            return Err(Error::ParsingError(ParsingErrors::DuplicateVariable(
+                variable.key,
+                self.name.clone(),
+            )));
+        }
         self.lines.push(Line::Variable(variable));
+        Ok(())
     }
     pub fn add_comment(&mut self, comment: &str) {
         self.lines.push(Line::Comment(comment.to_string()));
@@ -40,33 +44,16 @@ impl Block {
     pub fn add_newline(&mut self) {
         self.lines.push(Line::Empty);
     }
-    pub fn update_variable(&mut self, key: &str, new_variable: Variable) -> Result<(), Error> {
-        if let Some(pos) = self.lines.iter().position(|line| match line {
-            Line::Variable(variable) => variable.key == key,
-            _ => false,
-        }) {
-            self.lines[pos] = Line::Variable(new_variable);
-            Ok(())
-        } else {
-            Err(Error::AccessError(AccessErrors::VariableNotFound(
-                key.to_string(),
-                self.name.to_string(),
-            )))
-        }
-    }
     pub fn remove_variable(&mut self, key: &str) -> Result<(), Error> {
-        if let Some(pos) = self.lines.iter().position(|line| match line {
-            Line::Variable(variable) => variable.key == key,
-            _ => false,
-        }) {
-            self.lines.remove(pos);
-            Ok(())
-        } else {
-            Err(Error::AccessError(AccessErrors::VariableNotFound(
+        let contains = self.lines.contains(&Line::Variable(Variable::new(key, "")));
+        if !contains {
+            return Err(Error::AccessError(AccessErrors::VariableNotFound(
                 key.to_string(),
                 self.name.to_string(),
-            )))
+            )));
         }
+        self.lines.retain(|l| l.clone() != Line::Variable(Variable::new(key, "")));
+        Ok(())
     }
     pub fn get_variable(&self, key: &str) -> Option<&Variable> {
         let variable_line = self.lines.iter().find(|line| match line {
@@ -127,8 +114,8 @@ impl Display for Block {
     }
 }
 
-impl TokenName for Block {
-    fn name() -> &'static str {
-        "Block"
+impl PartialEq for Block {
+    fn eq(&self, other: &Self) -> bool {
+        self.name == other.name
     }
 }

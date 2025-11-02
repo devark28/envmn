@@ -1,8 +1,8 @@
-use crate::parser::tokens::token_name::TokenName;
 use crate::parser::tokens::variable::Variable;
 use std::fmt::{Display, Formatter};
+use std::hash::Hash;
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Eq, Hash)]
 pub enum Line {
     Comment(String),
     Variable(Variable),
@@ -19,8 +19,11 @@ impl Display for Line {
     }
 }
 
-impl TokenName for Line {
-    fn name() -> &'static str {
-        "Line"
+impl PartialEq for Line {
+    fn eq(&self, other: &Self) -> bool {
+        match (&self, &other) {
+            (Line::Variable(var), Line::Variable(other_var)) => var == other_var,
+            _ => false,
+        }
     }
 }

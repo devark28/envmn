@@ -1,10 +1,8 @@
 use crate::error::{Error, NamingErrors};
-use crate::parser::tokens::Block;
-use crate::parser::tokens::token_name::TokenName;
 
 pub fn validate_block_name(line: u16, name: &str) -> Result<(), Error> {
     if name.is_empty() {
-        return Err(Error::NamingError(NamingErrors::NameEmpty(Block::name())));
+        return Err(Error::NamingError(NamingErrors::BlockNameEmpty));
     }
 
     let mut chars = name.chars();
@@ -21,10 +19,9 @@ pub fn validate_block_name(line: u16, name: &str) -> Result<(), Error> {
     if let Some(invalid_char) =
         chars.find(|&c| !(c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_'))
     {
-        return Err(Error::NamingError(NamingErrors::ContainsInvalidCharacter(
+        return Err(Error::NamingError(NamingErrors::BlockContainsInvalidCharacter(
             line,
             invalid_char.to_string(),
-            Block::name(),
         )));
     }
 
