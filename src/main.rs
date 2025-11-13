@@ -23,18 +23,12 @@ fn main() {
     let result = match &cli {
         Cli {
             input: None,
-            command: Some(Commands::VersionCmd(version_cmd)),
+            command: Commands::Version { name, version },
         } => {
-            Engine::process_version_cmd(version_cmd.clone());
+            Engine::process_version_cmd(name, version);
             exit(0);
         }
-        Cli {
-            input: None,
-            command: Some(Commands::HelpCmd),
-        } => {
-            Engine::process_help_cmd();
-            exit(0);
-        }
+
         Cli { input: None, .. } => {
             eprintln!("{}", CliErrors::NoInputFound);
             exit(1);

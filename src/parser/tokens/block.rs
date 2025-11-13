@@ -105,7 +105,7 @@ mod tests {
             let mut block = Block::new("test");
             block.add_variable(Variable::new("KEY", "value")).unwrap();
             assert_eq!(block.lines.len(), 1);
-            assert!(block.lines.first().unwrap().is_variable());
+            assert!(matches!(block.lines.first().unwrap(), Line::Variable(_)));
         }
 
         #[test]
@@ -113,7 +113,7 @@ mod tests {
             let mut block = Block::new("test");
             block.add_comment("test comment");
             assert_eq!(block.lines.len(), 1);
-            assert!(block.lines.first().unwrap().is_comment());
+            assert!(matches!(block.lines.first().unwrap(), Line::Comment(_)));
         }
 
         #[test]
