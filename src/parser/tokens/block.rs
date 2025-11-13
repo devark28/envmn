@@ -1,4 +1,4 @@
-use crate::error::{AccessErrors, Error, ParsingErrors};
+use crate::error::{Error, ParsingErrors};
 use crate::parser::constants::{BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME};
 use crate::parser::tokens::line::Line;
 use crate::parser::tokens::variable::Variable;
@@ -12,7 +12,6 @@ pub struct Block {
     lines: IndexSet<Line>,
 }
 
-#[allow(unused)]
 impl Block {
     pub fn default() -> Self {
         Block {
@@ -26,9 +25,6 @@ impl Block {
             lines: IndexSet::new(),
         }
     }
-    pub fn set_name(&mut self, name: &str) {
-        self.name = name.to_string();
-    }
     pub fn add_variable(&mut self, variable: Variable) -> Result<(), Error> {
         if !self.lines.insert(Line::Variable(variable.clone())) {
             return Err(Error::ParsingError(ParsingErrors::DuplicateVariable(
@@ -41,48 +37,9 @@ impl Block {
     pub fn add_comment(&mut self, comment: &str) {
         self.lines.insert(Line::Comment(comment.to_string()));
     }
+    #[allow(dead_code)]
     pub fn add_newline(&mut self) {
         self.lines.insert(Line::Empty);
-    }
-    pub fn remove_variable(&mut self, key: &str) -> Result<(), Error> {
-        if !self
-            .lines
-            .shift_remove(&Line::Variable(Variable::new(key, "")))
-        {
-            return Err(Error::AccessError(AccessErrors::VariableNotFound(
-                key.to_string(),
-                self.name.to_string(),
-            )));
-        }
-        Ok(())
-    }
-    pub fn get_variable(&self, key: &str) -> Option<&Variable> {
-        let variable_line = self.lines.iter().find(|line| match line {
-            Line::Variable(variable) => variable.key == key,
-            _ => false,
-        });
-        match variable_line {
-            Some(Line::Variable(variable)) => Some(&variable),
-            _ => None,
-        }
-    }
-    fn get_variables(self: &mut Self) -> Vec<&Variable> {
-        self.lines
-            .iter()
-            .filter_map(|line| match line {
-                Line::Variable(variable) => Some(variable),
-                _ => None,
-            })
-            .collect::<Vec<_>>()
-    }
-    pub fn clear(&mut self) {
-        self.lines.clear();
-    }
-    pub fn is_empty(&self) -> bool {
-        self.lines.is_empty()
-    }
-    pub fn len(&self) -> usize {
-        self.lines.len()
     }
 }
 

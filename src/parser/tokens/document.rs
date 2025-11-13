@@ -1,20 +1,19 @@
 use crate::error::{AccessErrors, Error, ParsingErrors};
 use crate::parser::constants::DEFAULT_BLOCK_NAME;
 use crate::parser::tokens::block::Block;
-use std::fmt::{Display, Formatter};
 use indexmap::IndexSet;
 use indexmap::set::MutableValues;
+use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Document {
     blocks: IndexSet<Block>,
 }
 
-#[allow(unused)]
 impl Document {
     pub fn new() -> Self {
         Document {
-            blocks: IndexSet::from([Block::new(DEFAULT_BLOCK_NAME)]),
+            blocks: IndexSet::from([Block::default()]),
         }
     }
     pub fn add_block(&mut self, block: Block) -> Result<(), Error> {
@@ -25,51 +24,21 @@ impl Document {
         }
         Ok(())
     }
-    pub fn remove_block(&mut self, name: &str) -> Result<(), Error> {
-        if !self.blocks.shift_remove(&Block::new(name)) {
-            return Err(Error::AccessError(AccessErrors::BlockNotFound(
+    pub fn get_index(&self, name: &str) -> Option<usize> {
+        match self.blocks
+            .get_index_of(&Block::new(name))
+            .ok_or(Error::AccessError(AccessErrors::BlockNotFound(
                 name.to_string(),
-            )));
+            ))) {
+            Ok(index) => Some(index),
+            Err(_) => None,
         }
-        Ok(())
-    }
-    fn get_position(&self, name: &str) -> Result<usize, Error> {
-        let Some(pos) = self.blocks.iter().position(|block| block.name == name) else {
-            return Err(Error::AccessError(AccessErrors::BlockNotFound(
-                name.to_string(),
-            )));
-        };
-        Ok(pos)
-    }
-    pub fn get_block(&self, name: &str) -> Option<&Block> {
-        self.blocks.iter().find(|block| block.name == name)
     }
     pub fn get_blocks(&self) -> &IndexSet<Block> {
         &self.blocks
     }
-    pub fn clear(&mut self) {
-        self.blocks.clear();
-    }
-    pub fn is_empty(&self) -> bool {
-        self.blocks.is_empty()
-    }
     pub fn len(&self) -> usize {
         self.blocks.len()
-    }
-    pub fn pick(&mut self, name: &str) -> Result<&Self, Error> {
-        if name == DEFAULT_BLOCK_NAME {
-            return Err(Error::AccessError(AccessErrors::DefaultBlockNotMovable));
-        }
-        match self.clone().get_block(name) {
-            None => Err(Error::AccessError(AccessErrors::BlockNotFound(
-                name.to_string(),
-            ))),
-            Some(block) => {
-                self.remove_block(name);
-                self.add_block(block.clone());
-                Ok(self)
-            }
-        }
     }
 }
 
@@ -88,6 +57,23 @@ impl Document {
             None => Err(Error::AccessError(AccessErrors::BlockNotFound(
                 DEFAULT_BLOCK_NAME.to_string(),
             ))),
+        }
+    }
+}
+
+impl Document {
+    pub fn pick(&mut self, name: &str) -> Result<&Self, Error> {
+        if name == DEFAULT_BLOCK_NAME {
+            return Err(Error::AccessError(AccessErrors::DefaultBlockNotMovable));
+        }
+        match self.get_index(name) {
+            None => Err(Error::AccessError(AccessErrors::BlockNotFound(
+                name.to_string(),
+            ))),
+            Some(index) => {
+                self.blocks.move_index(index, self.blocks.len() - 1);
+                Ok(self)
+            }
         }
     }
 }
