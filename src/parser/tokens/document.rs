@@ -105,13 +105,13 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_new_document_and_default_block_exists_initially() {
+    fn new_document_and_default_block_exists_initially() {
         let doc = Document::new();
         assert_eq!(doc.blocks.first().unwrap().name, DEFAULT_BLOCK_NAME);
     }
 
     #[test]
-    fn test_blocks_len() {
+    fn blocks_len() {
         let mut doc = Document::new();
         assert_eq!(doc.blocks_len(), 1);
         doc.add_block(Block::new("test")).unwrap();
@@ -119,7 +119,7 @@ mod tests {
     }
 
     #[test]
-    fn test_add_block_at_the_end() {
+    fn add_block_at_the_end() {
         let mut doc = Document::new();
         assert_eq!(doc.blocks.last().unwrap().name, DEFAULT_BLOCK_NAME);
         doc.add_block(Block::new("test")).unwrap();
@@ -128,20 +128,22 @@ mod tests {
     }
 
     #[test]
-    fn test_fail_to_add_default_block() {
+    #[should_panic]
+    fn add_default_block() {
         let mut doc = Document::new();
-        assert!(doc.add_block(Block::default()).is_err());
+        doc.add_block(Block::default()).unwrap();
     }
 
     #[test]
-    fn test_fail_to_add_duplicate_block() {
+    #[should_panic]
+    fn add_duplicate_block() {
         let mut doc = Document::new();
         doc.add_block(Block::new("test")).unwrap();
-        assert!(doc.add_block(Block::new("test")).is_err());
+        doc.add_block(Block::new("test")).unwrap();
     }
 
     #[test]
-    fn test_get_block_index_by_name() {
+    fn get_block_index_by_name() {
         let mut doc = Document::new();
         doc.add_block(Block::new("test")).unwrap();
         let index = doc.get_index("test");
@@ -150,20 +152,21 @@ mod tests {
     }
 
     #[test]
-    fn test_fail_to_get_non_existing_block_index() {
+    #[should_panic]
+    fn get_non_existing_block_index() {
         let doc = Document::new();
         let index = doc.get_index("test");
-        assert!(index.is_none());
+        index.unwrap();
     }
 
     #[test]
-    fn test_get_default_block() {
+    fn get_default_block() {
         let mut doc = Document::new();
         assert_eq!(doc.get_default_block().unwrap().name, DEFAULT_BLOCK_NAME);
     }
 
     #[test]
-    fn test_get_default_block_mut() {
+    fn get_default_block_mut() {
         let mut doc = Document::new();
         assert_eq!(
             doc.get_default_block_mut().unwrap().name,
@@ -172,72 +175,72 @@ mod tests {
     }
 
     #[test]
-    fn test_default_always_exists_and_first() {
+    fn default_always_exists_and_first() {
         let mut doc = Document::new();
         assert!(doc.get_default_block().is_ok());
         doc.add_block(Block::new("test")).unwrap();
         doc.add_block(Block::new("test2")).unwrap();
         assert_eq!(doc.blocks.first().unwrap().name, DEFAULT_BLOCK_NAME);
     }
-}
 
-#[cfg(test)]
-mod test_user_operations {
-    use super::*;
+    #[cfg(test)]
+    mod operations {
+        use super::*;
 
-    #[test]
-    fn test_pick_block() {
-        let mut doc = Document::new();
-        doc.add_block(Block::new("test")).unwrap();
-        doc.add_block(Block::new("test1")).unwrap();
-        doc.pick("test").unwrap();
-        assert_eq!(doc.blocks.last().unwrap().name, "test");
-    }
-}
-
-#[cfg(test)]
-mod display_tests {
-    use super::*;
-
-    #[test]
-    fn test_display_empty_document() {
-        let doc = Document::new();
-        assert_eq!(
-            doc.to_string(),
-            format!("{0}\n", Block::default().to_string())
-        );
+        #[test]
+        fn pick_block() {
+            let mut doc = Document::new();
+            doc.add_block(Block::new("test")).unwrap();
+            doc.add_block(Block::new("test1")).unwrap();
+            doc.pick("test").unwrap();
+            assert_eq!(doc.blocks.last().unwrap().name, "test");
+        }
     }
 
-    #[test]
-    fn test_display_with_1_block_document() {
-        let mut doc = Document::new();
+    #[cfg(test)]
+    mod display {
+        use super::*;
 
-        doc.add_block(Block::new("test")).unwrap();
-        assert_eq!(
-            doc.to_string(),
-            format!(
-                "{0}\n\n{1}\n",
-                Block::default().to_string(),
-                Block::new("test").to_string()
-            )
-        );
-    }
+        #[test]
+        fn empty() {
+            let doc = Document::new();
+            assert_eq!(
+                doc.to_string(),
+                format!("{0}\n", Block::default().to_string())
+            );
+        }
 
-    #[test]
-    fn test_display_with_2_block_document() {
-        let mut doc = Document::new();
+        #[test]
+        fn with_1_block() {
+            let mut doc = Document::new();
 
-        doc.add_block(Block::new("test")).unwrap();
+            doc.add_block(Block::new("test")).unwrap();
+            assert_eq!(
+                doc.to_string(),
+                format!(
+                    "{0}\n\n{1}\n",
+                    Block::default().to_string(),
+                    Block::new("test").to_string()
+                )
+            );
+        }
 
-        doc.add_block(Block::new("test2")).unwrap();
-        assert_eq!(
-            doc.to_string(),
-            format!(
-                "{0}\n\n{1}\n\n{2}\n",
-                Block::default().to_string(),
-                Block::new("test").to_string(),
-                Block::new("test2").to_string()
-            )
-        );
+        #[test]
+        fn with_2_block() {
+            let mut doc = Document::new();
+
+            doc.add_block(Block::new("test")).unwrap();
+
+            doc.add_block(Block::new("test2")).unwrap();
+            assert_eq!(
+                doc.to_string(),
+                format!(
+                    "{0}\n\n{1}\n\n{2}\n",
+                    Block::default().to_string(),
+                    Block::new("test").to_string(),
+                    Block::new("test2").to_string()
+                )
+            );
+        }
     }
 }

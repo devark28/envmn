@@ -32,44 +32,50 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_valid_variable_name() {
-        assert!(validate_block_name(1, "valid_variable_1_name").is_ok());
+    fn contains_underscore_and_alphanumeric() {
+        validate_block_name(1, "valid_block_1_name").unwrap();
     }
 
     #[test]
-    fn test_starts_with_underscore_variable_name() {
-        assert!(validate_block_name(1, "_valid_variable_name").is_ok());
+    fn starts_with_underscore() {
+        validate_block_name(1, "_valid_block_name").unwrap();
     }
 
     #[test]
-    fn test_empty_variable_name() {
-        assert!(validate_block_name(1, "").is_err());
+    #[should_panic]
+    fn empty() {
+        validate_block_name(1, "").unwrap();
     }
 
     #[test]
-    fn test_starts_with_digit_variable_name() {
-        assert!(validate_block_name(1, "1invalid_variable_name").is_err());
+    #[should_panic]
+    fn starts_with_digit() {
+        validate_block_name(1, "1invalid_block_name").unwrap();
     }
 
     #[test]
-    fn test_contains_special_character_variable_name() {
-        assert!(validate_block_name(1, "invalid-variable-name").is_err());
-        assert!(validate_block_name(1, "invalid!variable!name").is_err());
+    #[should_panic]
+    fn contains_special_character() {
+        validate_block_name(1, "invalid-block-name").unwrap();
+        validate_block_name(1, "invalid!block!name").unwrap();
     }
 
     #[test]
-    fn test_contains_space_variable_name() {
-        assert!(validate_block_name(1, "invalid variable name").is_err());
+    #[should_panic]
+    fn contains_space() {
+        validate_block_name(1, "invalid block name").unwrap();
     }
 
     #[test]
-    fn test_starts_with_special_character_variable_name() {
-        assert!(validate_block_name(1, "!invalid_variable_name").is_err());
-        assert!(validate_block_name(1, "-invalid_variable_name").is_err());
+    #[should_panic]
+    fn starts_with_special_character() {
+        validate_block_name(1, "!invalid_block_name").unwrap();
+        validate_block_name(1, "-invalid_block_name").unwrap();
     }
 
     #[test]
-    fn test_contains_uppercase_letters_variable_name() {
-        assert!(validate_block_name(1, "VALID_VARIABLE_NAME").is_err());
+    #[should_panic]
+    fn contains_uppercase_letters() {
+        validate_block_name(1, "INVALID_BLOCK_NAME").unwrap();
     }
 }

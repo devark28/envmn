@@ -39,7 +39,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_line_equality_by_variable() {
+    fn line_equality_by_variable() {
         let v1 = Variable::new("KEY", "value1");
         let v2 = Variable::new("KEY", "value2");
         let line1 = Line::Variable(v1);
@@ -48,20 +48,20 @@ mod tests {
     }
 
     #[test]
-    fn test_line_inequality_by_comment() {
+    fn line_inequality_by_comment() {
         let line1 = Line::Comment("comment".to_string());
         let line2 = Line::Comment("comment".to_string());
         assert_ne!(line1, line2);
     }
 
     #[test]
-    fn test_is_comment() {
+    fn is_comment() {
         let line = Line::Comment("comment".to_string());
         assert!(line.is_comment());
     }
 
     #[test]
-    fn test_is_variable() {
+    fn is_variable() {
         let line = Line::Variable(Variable::new("KEY", "value"));
         assert!(line.is_variable());
     }

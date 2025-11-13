@@ -85,7 +85,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_raw_and_new_interop() {
+    fn raw_and_new_interop() {
         let v1 = Block {
             name: DEFAULT_BLOCK_NAME.to_string(),
             lines: IndexSet::new(),
@@ -95,114 +95,126 @@ mod tests {
         assert_eq!(v1, v2);
         assert_eq!(v2, v3);
     }
-}
 
-#[cfg(test)]
-mod test_user_operations {
-    use super::*;
+    #[cfg(test)]
+    mod operations {
+        use super::*;
 
-    #[test]
-    fn test_add_variable_to_block() {
-        let mut block = Block::new("test");
-        block.add_variable(Variable::new("KEY", "value")).unwrap();
-        assert_eq!(block.lines.len(), 1);
-        assert!(block.lines.first().unwrap().is_variable());
+        #[test]
+        fn add_variable() {
+            let mut block = Block::new("test");
+            block.add_variable(Variable::new("KEY", "value")).unwrap();
+            assert_eq!(block.lines.len(), 1);
+            assert!(block.lines.first().unwrap().is_variable());
+        }
+
+        #[test]
+        fn add_comment() {
+            let mut block = Block::new("test");
+            block.add_comment("test comment");
+            assert_eq!(block.lines.len(), 1);
+            assert!(block.lines.first().unwrap().is_comment());
+        }
+
+        #[test]
+        fn add_same_comment() {
+            let mut block = Block::new("test");
+            block.add_comment("test comment");
+            block.add_comment("test comment");
+            assert_eq!(block.lines.len(), 2);
+        }
+
+        #[test]
+        #[should_panic]
+        fn add_duplicate_variable() {
+            let mut block = Block::new("test");
+            block.add_variable(Variable::new("KEY", "value")).unwrap();
+            block.add_variable(Variable::new("KEY", "value")).unwrap();
+        }
     }
 
-    #[test]
-    fn test_add_comment_to_block() {
-        let mut block = Block::new("test");
-        block.add_comment("test comment");
-        assert_eq!(block.lines.len(), 1);
-        assert!(block.lines.first().unwrap().is_comment());
-    }
+    #[cfg(test)]
+    mod display {
+        use super::*;
 
-    #[test]
-    fn test_add_same_comment_to_block() {
-        let mut block = Block::new("test");
-        block.add_comment("test comment");
-        block.add_comment("test comment");
-        assert_eq!(block.lines.len(), 2);
-    }
+        #[test]
+        fn default_block() {
+            let block = Block::default();
+            assert_eq!(block.to_string(), "");
+        }
 
-    #[test]
-    fn test_fail_to_add_duplicate_variable_to_block() {
-        let mut block = Block::new("test");
-        block.add_variable(Variable::new("KEY", "value")).unwrap();
-        assert!(block.add_variable(Variable::new("KEY", "value")).is_err());
-    }
-}
+        #[test]
+        fn named_block() {
+            let block = Block::new("test");
+            assert_eq!(
+                block.to_string(),
+                format!("{BLOCK_START_SYMBOL} test\n\n{BLOCK_END_SYMBOL}")
+            );
+        }
 
-#[cfg(test)]
-mod display_tests {
-    use super::*;
+        #[test]
+        fn block_with_variables() {
+            let variable = Variable::new("KEY", "value");
+            let variable2 = Variable::new("KEY2", "value");
+            let mut default_block = Block::default();
+            let mut named_block = Block::new("test");
 
-    #[test]
-    fn test_default_block_display() {
-        let block = Block::default();
-        assert_eq!(block.to_string(), "");
-    }
+            default_block.add_variable(variable.clone()).unwrap();
+            named_block.add_variable(variable.clone()).unwrap();
+            assert_eq!(
+                default_block.to_string(),
+                format!("{0}", variable.to_string())
+            );
+            assert_eq!(
+                named_block.to_string(),
+                format!(
+                    "{BLOCK_START_SYMBOL} test\n{0}\n{BLOCK_END_SYMBOL}",
+                    variable.to_string()
+                )
+            );
 
-    #[test]
-    fn test_named_block_display() {
-        let block = Block::new("test");
-        assert_eq!(
-            block.to_string(),
-            format!("{BLOCK_START_SYMBOL} test\n\n{BLOCK_END_SYMBOL}")
-        );
-    }
+            default_block.add_variable(variable2.clone()).unwrap();
+            named_block.add_variable(variable2.clone()).unwrap();
+            assert_eq!(
+                default_block.to_string(),
+                format!("{0}\n{1}", variable.to_string(), variable2.to_string())
+            );
+            assert_eq!(
+                named_block.to_string(),
+                format!(
+                    "{BLOCK_START_SYMBOL} test\n{0}\n{1}\n{BLOCK_END_SYMBOL}",
+                    variable.to_string(),
+                    variable2.to_string()
+                )
+            );
+        }
 
-    #[test]
-    fn test_block_with_variables_display() {
-        let variable = Variable::new("KEY", "value");
-        let variable2 = Variable::new("KEY2", "value");
-        let mut default_block = Block::default();
-        let mut named_block = Block::new("test");
+        #[test]
+        fn block_with_comments() {
+            let mut block = Block::new("test");
+            block.add_comment("test comment");
+            block.add_comment("test comment");
+            assert_eq!(
+                block.to_string(),
+                format!(
+                    "{BLOCK_START_SYMBOL} test\n# test comment\n# test comment\n{BLOCK_END_SYMBOL}"
+                )
+            );
+        }
 
-        default_block.add_variable(variable.clone()).unwrap();
-        named_block.add_variable(variable.clone()).unwrap();
-        assert_eq!(
-            default_block.to_string(),
-            format!("{0}", variable.to_string())
-        );
-        assert_eq!(
-            named_block.to_string(),
-            format!(
-                "{BLOCK_START_SYMBOL} test\n{0}\n{BLOCK_END_SYMBOL}",
-                variable.to_string()
-            )
-        );
-
-        default_block.add_variable(variable2.clone()).unwrap();
-        named_block.add_variable(variable2.clone()).unwrap();
-        assert_eq!(
-            default_block.to_string(),
-            format!("{0}\n{1}", variable.to_string(), variable2.to_string())
-        );
-        assert_eq!(
-            named_block.to_string(),
-            format!(
-                "{BLOCK_START_SYMBOL} test\n{0}\n{1}\n{BLOCK_END_SYMBOL}",
-                variable.to_string(),
-                variable2.to_string()
-            )
-        );
-    }
-
-    #[test]
-    fn test_block_with_comments_display() {
-        let mut block = Block::new("test");
-        block.add_comment("test comment");
-        block.add_comment("test comment");
-        assert_eq!(block.to_string(), format!("{BLOCK_START_SYMBOL} test\n# test comment\n# test comment\n{BLOCK_END_SYMBOL}"));
-    }
-
-    #[test]
-    fn test_block_with_variable_and_comments_display() {
-        let variable = Variable::new("KEY", "value");
-        let mut block = Block::new("test");
-        block.add_variable(variable.clone()).unwrap();
-        block.add_comment("test comment");
-        assert_eq!(block.to_string(), format!("{BLOCK_START_SYMBOL} test\n{0}\n# test comment\n{BLOCK_END_SYMBOL}", variable.to_string()));
+        #[test]
+        fn block_with_variable_and_comments() {
+            let variable = Variable::new("KEY", "value");
+            let mut block = Block::new("test");
+            block.add_variable(variable.clone()).unwrap();
+            block.add_comment("test comment");
+            assert_eq!(
+                block.to_string(),
+                format!(
+                    "{BLOCK_START_SYMBOL} test\n{0}\n# test comment\n{BLOCK_END_SYMBOL}",
+                    variable.to_string()
+                )
+            );
+        }
     }
 }

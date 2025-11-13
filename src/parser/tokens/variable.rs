@@ -39,7 +39,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn test_variable_raw_equality_by_key() {
+    fn raw_variable_equality_by_key() {
         let v1 = Variable {
             key: "KEY".to_string(),
             value: "value1".to_string(),
@@ -52,14 +52,14 @@ mod tests {
     }
 
     #[test]
-    fn test_variable_new_equality_by_key() {
+    fn new_variable_equality_by_key() {
         let v1 = Variable::new("KEY", "value1");
         let v2 = Variable::new("KEY", "value2");
         assert_eq!(v1, v2);
     }
 
     #[test]
-    fn test_raw_and_new_interop() {
+    fn raw_and_new_interop() {
         let v1 = Variable {
             key: "KEY".to_string(),
             value: "value1".to_string(),
@@ -74,13 +74,13 @@ mod display_tests {
     use super::*;
 
     #[test]
-    fn test_variable_display() {
+    fn with_value_display() {
         let var = Variable::new("KEY", "value");
         assert_eq!(var.to_string(), "KEY=value");
     }
 
     #[test]
-    fn test_variable_empty_value_display() {
+    fn empty_value_display() {
         let var = Variable::new("KEY", "");
         assert_eq!(var.to_string(), "KEY=");
     }
