@@ -45,15 +45,15 @@ impl Block {
         self.lines.insert(Line::Empty);
     }
     pub fn remove_variable(&mut self, key: &str) -> Result<(), Error> {
-        let contains = self.lines.contains(&Line::Variable(Variable::new(key, "")));
-        if !contains {
+        if !self
+            .lines
+            .shift_remove(&Line::Variable(Variable::new(key, "")))
+        {
             return Err(Error::AccessError(AccessErrors::VariableNotFound(
                 key.to_string(),
                 self.name.to_string(),
             )));
         }
-        self.lines
-            .retain(|l| l.clone() != Line::Variable(Variable::new(key, "")));
         Ok(())
     }
     pub fn get_variable(&self, key: &str) -> Option<&Variable> {
