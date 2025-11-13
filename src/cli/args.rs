@@ -5,13 +5,26 @@ use std::io::{IsTerminal, Read, stdin};
 #[derive(Parser)]
 #[command(name = "envmn")]
 #[command(about = "Environment manager for .env-style files")]
+#[command(after_help = "Input modes:
+  - If data is piped in, envmn reads from standard input and writes to standard output.
+  - If both a pipe and a file are provided, the piped input takes priority.
+  - If no file is provided, envmn assumes a `.env` file exists in the current directory (for convenience).
+  - When a file path is provided (or .env is assumed), envmn reads from (and edits, if a file was passed) the file directly.
+
+Examples:
+  cat .env | envmn lint
+  envmn format .env
+  envmn pick database_block .env > out.env
+  envmn --version
+
+For more information, visit: https://github.com/devark28/envmn")]
 pub struct Args {
     /// Display the current version
     #[arg(short, long)]
     pub version: bool,
     
     #[command(subcommand)]
-    pub command: Option<Commands>,
+    pub command: Commands,
 }
 
 #[derive(Subcommand)]
@@ -53,6 +66,12 @@ impl Args {
                 None
             }
         };
-        (Self::parse(), stdin_input)
+        match Self::try_parse() {
+            Ok(args) => (args, stdin_input),
+            Err(err) => {
+                err.print().unwrap();
+                std::process::exit(1);
+            }
+        }
     }
 }

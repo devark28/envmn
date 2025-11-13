@@ -11,7 +11,7 @@ fn main() {
     let cli = match Cli::init() {
         Ok(cli) => cli,
         Err(Error::CliError(CliErrors::NoOperationFound)) => {
-            Engine::process_help_cmd();
+            eprintln!("{}", CliErrors::NoOperationFound);
             exit(1);
         }
         Err(error_type) => {

@@ -1,6 +1,6 @@
-use crate::cli::{Source, args::{Args, Commands as ArgCommands}};
 use crate::cli::constants::DEFAULT_FILE;
-use crate::error::{CliErrors, Error};
+use crate::cli::{args::{Args, Commands as ArgCommands}, Source};
+use crate::error::Error;
 
 #[derive(Clone, Debug)]
 pub struct Cli {
@@ -31,11 +31,7 @@ impl Cli {
             });
         }
         
-        let Some(command) = args.command else {
-            return Err(Error::CliError(CliErrors::NoOperationFound));
-        };
-        
-        let (command, input) = match command {
+        let (command, input) = match args.command {
 
             ArgCommands::Lint { file } => (
                 Commands::Lint,
