@@ -5,13 +5,9 @@ use std::fmt::{Display, Formatter};
 pub enum Line {
     Comment(String),
     Variable(Variable),
-    Empty,
 }
 
 impl Line {
-    pub fn is_empty(&self) -> bool {
-        matches!(self, Line::Empty)
-    }
     pub fn is_comment(&self) -> bool {
         matches!(self, Line::Comment(_))
     }
@@ -25,7 +21,6 @@ impl Display for Line {
         match self {
             Line::Comment(comment) => write!(f, "# {comment}"),
             Line::Variable(variable) => write!(f, "{variable}"),
-            Line::Empty => writeln!(f),
         }
     }
 }
@@ -57,19 +52,6 @@ mod tests {
         let line1 = Line::Comment("comment".to_string());
         let line2 = Line::Comment("comment".to_string());
         assert_ne!(line1, line2);
-    }
-
-    #[test]
-    fn test_line_inequality_by_empty() {
-        let line1 = Line::Empty;
-        let line2 = Line::Empty;
-        assert_ne!(line1, line2);
-    }
-
-    #[test]
-    fn test_is_empty() {
-        let line = Line::Empty;
-        assert!(line.is_empty());
     }
 
     #[test]

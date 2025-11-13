@@ -68,3 +68,20 @@ mod tests {
         assert_eq!(v1, v2);
     }
 }
+
+#[cfg(test)]
+mod display_tests {
+    use super::*;
+
+    #[test]
+    fn test_variable_display() {
+        let var = Variable::new("KEY", "value");
+        assert_eq!(var.to_string(), "KEY=value");
+    }
+
+    #[test]
+    fn test_variable_empty_value_display() {
+        let var = Variable::new("KEY", "");
+        assert_eq!(var.to_string(), "KEY=");
+    }
+}

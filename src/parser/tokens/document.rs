@@ -165,7 +165,10 @@ mod tests {
     #[test]
     fn test_get_default_block_mut() {
         let mut doc = Document::new();
-        assert_eq!(doc.get_default_block_mut().unwrap().name, DEFAULT_BLOCK_NAME);
+        assert_eq!(
+            doc.get_default_block_mut().unwrap().name,
+            DEFAULT_BLOCK_NAME
+        );
     }
 
     #[test]
@@ -189,5 +192,52 @@ mod test_user_operations {
         doc.add_block(Block::new("test1")).unwrap();
         doc.pick("test").unwrap();
         assert_eq!(doc.blocks.last().unwrap().name, "test");
+    }
+}
+
+#[cfg(test)]
+mod display_tests {
+    use super::*;
+
+    #[test]
+    fn test_display_empty_document() {
+        let doc = Document::new();
+        assert_eq!(
+            doc.to_string(),
+            format!("{0}\n", Block::default().to_string())
+        );
+    }
+
+    #[test]
+    fn test_display_with_1_block_document() {
+        let mut doc = Document::new();
+
+        doc.add_block(Block::new("test")).unwrap();
+        assert_eq!(
+            doc.to_string(),
+            format!(
+                "{0}\n\n{1}\n",
+                Block::default().to_string(),
+                Block::new("test").to_string()
+            )
+        );
+    }
+
+    #[test]
+    fn test_display_with_2_block_document() {
+        let mut doc = Document::new();
+
+        doc.add_block(Block::new("test")).unwrap();
+
+        doc.add_block(Block::new("test2")).unwrap();
+        assert_eq!(
+            doc.to_string(),
+            format!(
+                "{0}\n\n{1}\n\n{2}\n",
+                Block::default().to_string(),
+                Block::new("test").to_string(),
+                Block::new("test2").to_string()
+            )
+        );
     }
 }
