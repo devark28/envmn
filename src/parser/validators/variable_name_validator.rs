@@ -26,3 +26,45 @@ pub fn validate_variable_name(line: u16, name: &str) -> Result<(), Error> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_valid_variable_name() {
+        assert!(validate_variable_name(1, "valid_variable_1_name").is_ok());
+    }
+
+    #[test]
+    fn test_starts_with_underscore_variable_name() {
+        assert!(validate_variable_name(1, "_valid_variable_name").is_ok());
+    }
+
+    #[test]
+    fn test_empty_variable_name() {
+        assert!(validate_variable_name(1, "").is_err());
+    }
+
+    #[test]
+    fn test_starts_with_digit_variable_name() {
+        assert!(validate_variable_name(1, "1invalid_variable_name").is_err());
+    }
+
+    #[test]
+    fn test_contains_special_character_variable_name() {
+        assert!(validate_variable_name(1, "invalid-variable-name").is_err());
+        assert!(validate_variable_name(1, "invalid!variable!name").is_err());
+    }
+
+    #[test]
+    fn test_starts_with_special_character_variable_name() {
+        assert!(validate_variable_name(1, "!invalid_variable_name").is_err());
+        assert!(validate_variable_name(1, "-invalid_variable_name").is_err());
+    }
+
+    #[test]
+    fn test_contains_uppercase_letters_variable_name() {
+        assert!(validate_variable_name(1, "VALID_VARIABLE_NAME").is_ok());
+    }
+}

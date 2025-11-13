@@ -83,3 +83,65 @@ impl Hash for Block {
         self.name.hash(state)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_raw_and_new_interop() {
+        let v1 = Block {
+            name: DEFAULT_BLOCK_NAME.to_string(),
+            lines: IndexSet::new(),
+        };
+        let v2 = Block::new(DEFAULT_BLOCK_NAME);
+        let v3 = Block::default();
+        assert_eq!(v1, v2);
+        assert_eq!(v2, v3);
+    }
+}
+
+#[cfg(test)]
+mod test_user_operations {
+    use super::*;
+
+    #[test]
+    fn test_add_variable_to_block() {
+        let mut block = Block::new("test");
+        block.add_variable(Variable::new("KEY", "value")).unwrap();
+        assert_eq!(block.lines.len(), 1);
+        assert!(block.lines.first().unwrap().is_variable());
+    }
+
+    #[test]
+    fn test_add_comment_to_block() {
+        let mut block = Block::new("test");
+        block.add_comment("test comment");
+        assert_eq!(block.lines.len(), 1);
+        assert!(block.lines.first().unwrap().is_comment());
+    }
+
+    #[test]
+    fn test_add_same_comment_to_block() {
+        let mut block = Block::new("test");
+        block.add_comment("test comment");
+        block.add_comment("test comment");
+        assert_eq!(block.lines.len(), 2);
+    }
+
+    #[test]
+    fn test_add_newline_to_block() {
+        let mut block = Block::new("test");
+        block.add_newline();
+        block.add_newline();
+        assert_eq!(block.lines.len(), 2);
+        assert!(block.lines.first().unwrap().is_empty());
+    }
+
+    #[test]
+    fn test_fail_to_add_duplicate_variable_to_block() {
+        let mut block = Block::new("test");
+        block.add_variable(Variable::new("KEY", "value")).unwrap();
+        assert!(block.add_variable(Variable::new("KEY", "value")).is_err());
+    }
+}
