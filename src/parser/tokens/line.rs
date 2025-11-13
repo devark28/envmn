@@ -1,7 +1,7 @@
 use crate::parser::tokens::variable::Variable;
 use std::fmt::{Display, Formatter};
 
-#[derive(Clone, Debug, Eq)]
+#[derive(Clone, Debug, Eq, Hash)]
 pub enum Line {
     Comment(String),
     Variable(Variable),

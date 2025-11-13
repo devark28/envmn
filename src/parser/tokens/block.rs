@@ -2,12 +2,14 @@ use crate::error::{AccessErrors, Error, ParsingErrors};
 use crate::parser::constants::{BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME};
 use crate::parser::tokens::line::Line;
 use crate::parser::tokens::variable::Variable;
+use indexmap::IndexSet;
 use std::fmt::{Display, Formatter};
+use std::hash::{Hash, Hasher};
 
 #[derive(Clone, Debug, Eq)]
 pub struct Block {
     pub name: String,
-    lines: Vec<Line>,
+    lines: IndexSet<Line>,
 }
 
 #[allow(unused)]
@@ -15,34 +17,32 @@ impl Block {
     pub fn default() -> Self {
         Block {
             name: DEFAULT_BLOCK_NAME.to_string(),
-            lines: vec![],
+            lines: IndexSet::new(),
         }
     }
     pub fn new(name: &str) -> Self {
         Block {
             name: name.to_string(),
-            lines: vec![],
+            lines: IndexSet::new(),
         }
     }
     pub fn set_name(&mut self, name: &str) {
         self.name = name.to_string();
     }
     pub fn add_variable(&mut self, variable: Variable) -> Result<(), Error> {
-        let contains = self.lines.contains(&Line::Variable(variable.clone()));
-        if contains {
+        if !self.lines.insert(Line::Variable(variable.clone())) {
             return Err(Error::ParsingError(ParsingErrors::DuplicateVariable(
                 variable.key,
                 self.name.clone(),
             )));
         }
-        self.lines.push(Line::Variable(variable));
         Ok(())
     }
     pub fn add_comment(&mut self, comment: &str) {
-        self.lines.push(Line::Comment(comment.to_string()));
+        self.lines.insert(Line::Comment(comment.to_string()));
     }
     pub fn add_newline(&mut self) {
-        self.lines.push(Line::Empty);
+        self.lines.insert(Line::Empty);
     }
     pub fn remove_variable(&mut self, key: &str) -> Result<(), Error> {
         let contains = self.lines.contains(&Line::Variable(Variable::new(key, "")));
@@ -52,7 +52,8 @@ impl Block {
                 self.name.to_string(),
             )));
         }
-        self.lines.retain(|l| l.clone() != Line::Variable(Variable::new(key, "")));
+        self.lines
+            .retain(|l| l.clone() != Line::Variable(Variable::new(key, "")));
         Ok(())
     }
     pub fn get_variable(&self, key: &str) -> Option<&Variable> {
@@ -117,5 +118,11 @@ impl Display for Block {
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
         self.name == other.name
+    }
+}
+
+impl Hash for Block {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        self.name.hash(state)
     }
 }
