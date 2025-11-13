@@ -26,3 +26,55 @@ pub fn validate_variable_name(line: u16, name: &str) -> Result<(), Error> {
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn contains_underscore_and_alphanumeric() {
+        validate_variable_name(1, "valid_variable_1_name").unwrap();
+    }
+
+    #[test]
+    fn starts_with_underscore() {
+        validate_variable_name(1, "_valid_variable_name").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn empty() {
+        validate_variable_name(1, "").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn starts_with_digit() {
+        validate_variable_name(1, "1invalid_variable_name").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn contains_special_character() {
+        validate_variable_name(1, "invalid-variable-name").unwrap();
+        validate_variable_name(1, "invalid!variable!name").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn contains_space() {
+        validate_variable_name(1, "invalid variable name").unwrap();
+    }
+
+    #[test]
+    #[should_panic]
+    fn starts_with_special_character() {
+        validate_variable_name(1, "!invalid_variable_name").unwrap();
+        validate_variable_name(1, "-invalid_variable_name").unwrap();
+    }
+
+    #[test]
+    fn contains_uppercase_letters() {
+        validate_variable_name(1, "VALID_VARIABLE_NAME").unwrap();
+    }
+}
