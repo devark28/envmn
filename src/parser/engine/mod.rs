@@ -1,4 +1,7 @@
-mod commands;
+mod format;
+mod list;
+mod pick;
+mod version;
 
 use crate::cli::{Cli, Commands};
 use crate::error::{CliErrors, Error};

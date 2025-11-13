@@ -71,8 +71,6 @@ impl Parser {
                 };
                 validate_variable_name(idx as u16, variable.key.deref())?;
                 self.get_working_block_mut()?.add_variable(variable)?;
-            } else {
-                // TODO: handle newlines (but they are reconstructed for formatting)
             }
         }
         Ok(self.document)
