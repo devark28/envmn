@@ -1,45 +1,85 @@
-use crate::cli::CliCmd;
-use crate::cli::{Commands, FormatCmd, HelpCmd, LintCmd, ListCmd, PickCmd, Source, VersionCmd};
+use crate::cli::constants::DEFAULT_FILE;
+use crate::cli::{
+    Source,
+    args::{ArgCommands, Args},
+};
 use crate::error::{CliErrors, Error};
-use crate::try_parse_cmd;
-use std::env;
-use std::io::{IsTerminal, Read, stdin};
-use std::ops::Deref;
+use clap::CommandFactory;
+use std::process::exit;
 
 #[derive(Clone, Debug)]
 pub struct Cli {
     pub input: Option<Source>,
-    pub command: Option<Commands>,
+    pub command: Commands,
+}
+
+#[derive(Clone, Debug)]
+pub enum Commands {
+    Version { name: String, version: String },
+    Lint,
+    Format,
+    List,
+    Pick { block_name: String },
 }
 
 impl Cli {
     pub fn init() -> Result<Self, Error> {
-        let params = env::args().skip(1).collect::<Vec<_>>();
-        let stdin_input = {
-            let mut buffer = String::new();
-            if !stdin().is_terminal() {
-                match stdin().read_to_string(&mut buffer) {
-                    Ok(_) => Some(Source::StdIn(buffer)),
-                    Err(_) => None,
-                }
-            } else {
-                None
-            }
-        };
-        if stdin_input.is_some() && params.is_empty() {
-            return Err(Error::CliError(CliErrors::NoOperationFound));
+        let (args, stdin_input) = Args::parse_with_stdin();
+
+        if args.version {
+            return Ok(Cli {
+                input: None,
+                command: Commands::Version {
+                    name: env!("CARGO_PKG_NAME").to_string(),
+                    version: env!("CARGO_PKG_VERSION").to_string(),
+                },
+            });
         }
-        try_parse_cmd!(VersionCmd, params.deref(), stdin_input);
-        try_parse_cmd!(HelpCmd, params.deref(), stdin_input);
-        try_parse_cmd!(LintCmd, params.deref(), stdin_input);
-        try_parse_cmd!(FormatCmd, params.deref(), stdin_input);
-        try_parse_cmd!(ListCmd, params.deref(), stdin_input);
-        try_parse_cmd!(PickCmd, params.deref(), stdin_input);
-        match params.first() {
-            Some(param) => Err(Error::CliError(CliErrors::UnknownCommand(
-                param.to_string(),
-            ))),
-            None => Err(Error::CliError(CliErrors::NoOperationFound)),
+
+        let Some(command) = args.command else {
+            return match Args::command().print_long_help() {
+                Ok(_) => exit(1),
+                _ => Err(Error::CliError(CliErrors::NoOperationFound)),
+            };
+        };
+
+        let (command, input) = match command {
+            ArgCommands::Lint { file } => {
+                (Commands::Lint, Some(Self::resolve_input(file, stdin_input)))
+            }
+            ArgCommands::Format { file } => (
+                Commands::Format,
+                Some(Self::resolve_input(file, stdin_input)),
+            ),
+            ArgCommands::List { file } => {
+                (Commands::List, Some(Self::resolve_input(file, stdin_input)))
+            }
+            ArgCommands::Pick { block, file } => (
+                Commands::Pick { block_name: block },
+                Some(Self::resolve_input(file, stdin_input)),
+            ),
+            ArgCommands::Version => (
+                Commands::Version {
+                    name: env!("CARGO_PKG_NAME").to_string(),
+                    version: env!("CARGO_PKG_VERSION").to_string(),
+                },
+                None,
+            ),
+        };
+
+        Ok(Cli { input, command })
+    }
+
+    fn resolve_input(file: Option<String>, stdin_input: Option<Source>) -> Source {
+        if let Some(input) = stdin_input
+            && let Source::StdIn(stdin) = input
+            && !stdin.is_empty()
+        {
+            Source::StdIn(stdin)
+        } else if let Some(file_name) = file {
+            Source::FileName(file_name)
+        } else {
+            Source::FileName(DEFAULT_FILE.to_string())
         }
     }
 }

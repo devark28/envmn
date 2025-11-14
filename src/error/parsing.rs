@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-#[allow(unused)]
 #[derive(Debug)]
 pub enum ParsingErrors {
     MissingEqSeparator(u16),
@@ -8,7 +7,6 @@ pub enum ParsingErrors {
     EmptyInput,
     BlockNeverOpened(u16),
     ReservedWord(u16, String),
-    BrokenValidator(String),
     DuplicateBlock(String),
     DuplicateVariable(String, String),
 }
@@ -38,9 +36,6 @@ impl Display for ParsingErrors {
             }
             ParsingErrors::ReservedWord(line, name) => {
                 write!(f, "Line {0}: You can not use keyword '{name}'", line + 1)
-            }
-            ParsingErrors::BrokenValidator(validator_name) => {
-                write!(f, "Validator '{validator_name}' is broken")
             }
             ParsingErrors::DuplicateBlock(name) => {
                 write!(f, "Duplicate block '{name}' found")

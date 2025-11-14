@@ -1,12 +1,12 @@
-use crate::cli::{PickCmd, Source};
+use crate::cli::Source;
 use crate::error::CliErrors;
 use crate::parser::engine::Engine;
 use std::fs;
 use std::process::exit;
 
 impl Engine {
-    pub fn process_pick_cmd(mut self, pick_cmd: PickCmd) {
-        match self.document.pick(pick_cmd.block_name.as_str()) {
+    pub fn process_pick_cmd(mut self, block_name: String) {
+        match self.document.pick(block_name.as_str()) {
             Ok(document) => {
                 let Some(input) = &self.cli.input else {
                     eprintln!("{}", CliErrors::NoInputFound);

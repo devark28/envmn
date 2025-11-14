@@ -1,4 +1,7 @@
-mod commands;
+mod format;
+mod list;
+mod pick;
+mod version;
 
 use crate::cli::{Cli, Commands};
 use crate::error::{CliErrors, Error};
@@ -15,10 +18,10 @@ impl Engine {
     }
     pub fn process(self) -> Result<(), Error> {
         match self.cli.command.clone() {
-            Some(Commands::LintCmd) => Ok(()),
-            Some(Commands::ListCmd) => Ok(self.process_list_cmd()),
-            Some(Commands::FormatCmd) => Ok(self.process_format_cmd()),
-            Some(Commands::PickCmd(pick_cmd)) => Ok(self.process_pick_cmd(pick_cmd)),
+            Commands::Lint => Ok(()),
+            Commands::List => Ok(self.process_list_cmd()),
+            Commands::Format => Ok(self.process_format_cmd()),
+            Commands::Pick { block_name } => Ok(self.process_pick_cmd(block_name)),
             _ => Err(Error::CliError(CliErrors::NoOperationFound)),
         }
     }

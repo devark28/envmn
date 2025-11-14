@@ -71,8 +71,6 @@ impl Parser {
                 };
                 validate_variable_name(idx as u16, variable.key.deref())?;
                 self.get_working_block_mut()?.add_variable(variable)?;
-            } else {
-                // TODO: handle newlines (but they are reconstructed for formatting)
             }
         }
         Ok(self.document)
@@ -89,14 +87,7 @@ impl Parser {
     }
 }
 
-#[allow(unused)]
 impl Parser {
-    fn get_working_block(&mut self) -> Result<&Block, Error> {
-        match &self.current_block {
-            Some(block) => Ok(block),
-            None => self.document.get_default_block(),
-        }
-    }
     fn get_working_block_mut(&mut self) -> Result<&mut Block, Error> {
         match self.current_block.as_mut() {
             Some(block) => Ok(block),

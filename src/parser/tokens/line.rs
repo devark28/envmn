@@ -7,15 +7,6 @@ pub enum Line {
     Variable(Variable),
 }
 
-impl Line {
-    pub fn is_comment(&self) -> bool {
-        matches!(self, Line::Comment(_))
-    }
-    pub fn is_variable(&self) -> bool {
-        matches!(self, Line::Variable(_))
-    }
-}
-
 impl Display for Line {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
@@ -52,17 +43,5 @@ mod tests {
         let line1 = Line::Comment("comment".to_string());
         let line2 = Line::Comment("comment".to_string());
         assert_ne!(line1, line2);
-    }
-
-    #[test]
-    fn is_comment() {
-        let line = Line::Comment("comment".to_string());
-        assert!(line.is_comment());
-    }
-
-    #[test]
-    fn is_variable() {
-        let line = Line::Variable(Variable::new("KEY", "value"));
-        assert!(line.is_variable());
     }
 }
