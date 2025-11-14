@@ -58,20 +58,26 @@ impl Cli {
                 Commands::Pick { block_name: block },
                 Some(Self::resolve_input(file, stdin_input)),
             ),
-            ArgCommands::Version => (Commands::Version {
-                name: env!("CARGO_PKG_NAME").to_string(),
-                version: env!("CARGO_PKG_VERSION").to_string(),
-            }, None),
+            ArgCommands::Version => (
+                Commands::Version {
+                    name: env!("CARGO_PKG_NAME").to_string(),
+                    version: env!("CARGO_PKG_VERSION").to_string(),
+                },
+                None,
+            ),
         };
 
         Ok(Cli { input, command })
     }
 
     fn resolve_input(file: Option<String>, stdin_input: Option<Source>) -> Source {
-        if let Some(file_name) = file {
+        if let Some(input) = stdin_input
+            && let Source::StdIn(stdin) = input
+            && !stdin.is_empty()
+        {
+            Source::StdIn(stdin)
+        } else if let Some(file_name) = file {
             Source::FileName(file_name)
-        } else if let Some(input) = stdin_input {
-            input
         } else {
             Source::FileName(DEFAULT_FILE.to_string())
         }
