@@ -51,6 +51,8 @@ pub enum ArgCommands {
         /// File to modify (defaults to .env)
         file: Option<String>,
     },
+    /// Display the current version
+    Version,
 }
 
 impl Args {

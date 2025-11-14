@@ -58,6 +58,10 @@ impl Cli {
                 Commands::Pick { block_name: block },
                 Some(Self::resolve_input(file, stdin_input)),
             ),
+            ArgCommands::Version => (Commands::Version {
+                name: env!("CARGO_PKG_NAME").to_string(),
+                version: env!("CARGO_PKG_VERSION").to_string(),
+            }, None),
         };
 
         Ok(Cli { input, command })
