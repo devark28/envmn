@@ -1,6 +1,11 @@
 use crate::cli::constants::DEFAULT_FILE;
-use crate::cli::{args::{Args, Commands as ArgCommands}, Source};
-use crate::error::Error;
+use crate::cli::{
+    Source,
+    args::{ArgCommands, Args},
+};
+use crate::error::{CliErrors, Error};
+use clap::CommandFactory;
+use std::process::exit;
 
 #[derive(Clone, Debug)]
 pub struct Cli {
@@ -20,7 +25,7 @@ pub enum Commands {
 impl Cli {
     pub fn init() -> Result<Self, Error> {
         let (args, stdin_input) = Args::parse_with_stdin();
-        
+
         if args.version {
             return Ok(Cli {
                 input: None,
@@ -30,30 +35,34 @@ impl Cli {
                 },
             });
         }
-        
-        let (command, input) = match args.command {
 
-            ArgCommands::Lint { file } => (
-                Commands::Lint,
-                Some(Self::resolve_input(file, stdin_input))
-            ),
+        let Some(command) = args.command else {
+            return match Args::command().print_long_help() {
+                Ok(_) => exit(1),
+                _ => Err(Error::CliError(CliErrors::NoOperationFound)),
+            };
+        };
+
+        let (command, input) = match command {
+            ArgCommands::Lint { file } => {
+                (Commands::Lint, Some(Self::resolve_input(file, stdin_input)))
+            }
             ArgCommands::Format { file } => (
                 Commands::Format,
-                Some(Self::resolve_input(file, stdin_input))
+                Some(Self::resolve_input(file, stdin_input)),
             ),
-            ArgCommands::List { file } => (
-                Commands::List,
-                Some(Self::resolve_input(file, stdin_input))
-            ),
+            ArgCommands::List { file } => {
+                (Commands::List, Some(Self::resolve_input(file, stdin_input)))
+            }
             ArgCommands::Pick { block, file } => (
                 Commands::Pick { block_name: block },
-                Some(Self::resolve_input(file, stdin_input))
+                Some(Self::resolve_input(file, stdin_input)),
             ),
         };
-        
+
         Ok(Cli { input, command })
     }
-    
+
     fn resolve_input(file: Option<String>, stdin_input: Option<Source>) -> Source {
         if let Some(file_name) = file {
             Source::FileName(file_name)

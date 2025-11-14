@@ -24,11 +24,11 @@ pub struct Args {
     pub version: bool,
     
     #[command(subcommand)]
-    pub command: Commands,
+    pub command: Option<ArgCommands>,
 }
 
 #[derive(Subcommand)]
-pub enum Commands {
+pub enum ArgCommands {
     /// Check for syntax and linting errors
     Lint {
         /// File to lint (defaults to .env)
@@ -66,12 +66,6 @@ impl Args {
                 None
             }
         };
-        match Self::try_parse() {
-            Ok(args) => (args, stdin_input),
-            Err(err) => {
-                err.print().unwrap();
-                std::process::exit(1);
-            }
-        }
+        (Self::parse(), stdin_input)
     }
 }
