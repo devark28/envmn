@@ -1,6 +1,5 @@
 use std::fmt::{Display, Formatter};
 
-#[allow(unused)]
 #[derive(Debug)]
 pub enum NamingErrors {
     BlockNameEmpty,

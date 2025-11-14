@@ -44,14 +44,6 @@ impl Document {
 }
 
 impl Document {
-    pub fn get_default_block(&mut self) -> Result<&Block, Error> {
-        match self.blocks.first() {
-            Some(default_block) => Ok(default_block),
-            None => Err(Error::AccessError(AccessErrors::BlockNotFound(
-                DEFAULT_BLOCK_NAME.to_string(),
-            ))),
-        }
-    }
     pub fn get_default_block_mut(&mut self) -> Result<&mut Block, Error> {
         match self.blocks.get_index_mut2(0) {
             Some(default_block) => Ok(default_block),
@@ -160,12 +152,6 @@ mod tests {
     }
 
     #[test]
-    fn get_default_block() {
-        let mut doc = Document::new();
-        assert_eq!(doc.get_default_block().unwrap().name, DEFAULT_BLOCK_NAME);
-    }
-
-    #[test]
     fn get_default_block_mut() {
         let mut doc = Document::new();
         assert_eq!(
@@ -177,7 +163,7 @@ mod tests {
     #[test]
     fn default_always_exists_and_first() {
         let mut doc = Document::new();
-        assert!(doc.get_default_block().is_ok());
+        doc.get_default_block_mut().unwrap();
         doc.add_block(Block::new("test")).unwrap();
         doc.add_block(Block::new("test2")).unwrap();
         assert_eq!(doc.blocks.first().unwrap().name, DEFAULT_BLOCK_NAME);
