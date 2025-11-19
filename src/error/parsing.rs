@@ -9,6 +9,7 @@ pub enum ParsingErrors {
     ReservedWord(u16, String),
     DuplicateBlock(String),
     DuplicateVariable(String, String),
+    MalFormedTags(u16),
 }
 
 impl Display for ParsingErrors {
@@ -45,6 +46,9 @@ impl Display for ParsingErrors {
                     f,
                     "Duplicate variable '{name}' found in block '{token_name}'"
                 )
+            }
+            ParsingErrors::MalFormedTags(line) => {
+                write!(f, "Line {0}: Malformed tags for block", line + 1)
             }
         }
     }

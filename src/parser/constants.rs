@@ -3,5 +3,7 @@ pub const BLOCK_END_SYMBOL: &str = "##";
 pub const KV_DELIMITER: &str = "=";
 pub const COMMENT_SYMBOL: &str = "#";
 pub const DEFAULT_BLOCK_NAME: &str = "default";
+pub const TAGS_START_SYMBOL: &str = "[";
+pub const TAGS_END_SYMBOL: &str = "]";
 /*pub const BLOCK_NAME_START_PAT: &str = r"^[^a-z_]";
 pub const BLOCK_NAME_MID_PAT: &str = r"[^a-z_0-9]";*/

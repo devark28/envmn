@@ -9,6 +9,7 @@ use std::hash::{Hash, Hasher};
 #[derive(Clone, Debug, Eq)]
 pub struct Block {
     pub name: String,
+    pub tags: IndexSet<String>,
     lines: IndexSet<Line>,
 }
 
@@ -16,12 +17,21 @@ impl Block {
     pub fn default() -> Self {
         Block {
             name: DEFAULT_BLOCK_NAME.to_string(),
+            tags: IndexSet::new(),
             lines: IndexSet::new(),
         }
     }
     pub fn new(name: &str) -> Self {
         Block {
             name: name.to_string(),
+            tags: IndexSet::new(),
+            lines: IndexSet::new(),
+        }
+    }
+    pub fn new_with_tags(name: &str, tags: Vec<String>) -> Self {
+        Block {
+            name: name.to_string(),
+            tags: tags.into_iter().collect(),
             lines: IndexSet::new(),
         }
     }
@@ -54,7 +64,7 @@ impl Display for Block {
         } else {
             write!(
                 f,
-                "{0} {2}\n{3}\n{1}",
+                "{0} {2}{4}\n{3}\n{1}",
                 BLOCK_START_SYMBOL,
                 BLOCK_END_SYMBOL,
                 self.name,
@@ -62,7 +72,12 @@ impl Display for Block {
                     .iter()
                     .map(ToString::to_string)
                     .collect::<Vec<_>>()
-                    .join("\n")
+                    .join("\n"),
+                if self.tags.len() > 0 {
+                    format!(" [{}]", self.tags.clone().into_iter().collect::<Vec<_>>().join(", "))
+                } else {
+                    String::new()
+                }
             )
         }
     }
@@ -70,13 +85,16 @@ impl Display for Block {
 
 impl PartialEq for Block {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.name == other.name && self.tags == other.tags
     }
 }
 
 impl Hash for Block {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        self.name.hash(state)
+        self.name.hash(state);
+        let mut sorted_tags = self.tags.iter().collect::<Vec<_>>();
+        sorted_tags.sort();
+        sorted_tags.iter().for_each(|tag| tag.hash(state));
     }
 }
 
@@ -88,6 +106,7 @@ mod tests {
     fn raw_and_new_interop() {
         let v1 = Block {
             name: DEFAULT_BLOCK_NAME.to_string(),
+            tags: IndexSet::new(),
             lines: IndexSet::new(),
         };
         let v2 = Block::new(DEFAULT_BLOCK_NAME);

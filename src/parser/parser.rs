@@ -26,10 +26,33 @@ impl Parser {
         let lines = input.lines();
         for (idx, line) in lines.enumerate() {
             if line.starts_with(constants::BLOCK_START_SYMBOL) {
-                let name = match self.current_block.as_ref() {
-                    None => line
-                        .trim_start_matches(constants::BLOCK_START_SYMBOL)
-                        .trim(),
+                let (name, tags) = match self.current_block.as_ref() {
+                    None => {
+                        let identifier = line
+                            .trim_start_matches(constants::BLOCK_START_SYMBOL)
+                            .trim();
+                        let (start_tags_idx, end_tags_idx) = (
+                            identifier.find(constants::TAGS_START_SYMBOL),
+                            identifier.find(constants::TAGS_END_SYMBOL),
+                        );
+                        let tags: Vec<String> = match (start_tags_idx, end_tags_idx) {
+                            (Some(start), Some(end)) => identifier[start + 1..end]
+                                .split(',')
+                                .map(|s| s.trim().to_string())
+                                .filter(|s| !s.is_empty())
+                                .collect(),
+                            (None, None) => Vec::new(),
+                            _ => {
+                                return Err(Error::ParsingError(ParsingErrors::MalFormedTags(
+                                    idx as u16,
+                                )));
+                            }
+                        };
+                        (
+                            identifier[..start_tags_idx.unwrap_or(identifier.len())].trim(),
+                            tags,
+                        )
+                    }
                     Some(Block { name, .. }) => {
                         return Err(Error::ParsingError(ParsingErrors::NestedBlock(
                             idx as u16,
@@ -44,7 +67,7 @@ impl Parser {
                     )));
                 }
                 validate_block_name(idx as u16, name)?;
-                self.current_block = Some(Block::new(name));
+                self.current_block = Some(Block::new_with_tags(name, tags));
             } else if line.starts_with(constants::BLOCK_END_SYMBOL) {
                 let block = match self.current_block.take() {
                     Some(block) => block,
@@ -73,6 +96,7 @@ impl Parser {
                 self.get_working_block_mut()?.add_variable(variable)?;
             }
         }
+        dbg!(self.document.clone());
         Ok(self.document)
     }
     pub fn parse_file(self, file_path: &str) -> Result<Document, Error> {
