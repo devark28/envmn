@@ -98,6 +98,12 @@ impl Hash for Block {
     }
 }
 
+/*
+TODO: add tests for tags operations
+    - add tag to named block
+    - tags contribute to uniqueness of block
+    - proper display of tags
+ */
 #[cfg(test)]
 mod tests {
     use super::*;
