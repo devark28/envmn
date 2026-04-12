@@ -3,7 +3,7 @@
 `envmn` is a lightweight command-line utility for managing complex `.env` files.
 It helps you lint, format, and switch between environment blocks — like `dev` and `prod` — safely and predictably.
 
-> **Note:** `envmn` currently supports **Linux** only.
+> **Note:** `envmn` currently supports **Linux** and **Windows**.
 
 ---
 
