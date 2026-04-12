@@ -19,18 +19,31 @@ It helps you lint, format, and switch between environment blocks — like `dev` 
 
 ## Installation
 
-Download the latest binary from the [**Releases** page](https://github.com/devark28/envmn/releases/latest).
-Then make it executable and move it into your `$PATH`:
+Download the latest binary for your platform from the [**Releases** page](https://github.com/devark28/envmn/releases/latest).
+
+### Linux
 
 ```bash
-# https://github.com/devark28/envmn/releases/latest and download an envmn binary
-# unzip the binary
-mv envmn_x64 envmn
+mv envmn_linux_x64 envmn
 chmod +x envmn
 sudo mv envmn /usr/local/bin/
 ```
 
-Verify the installation:
+### Windows
+
+1. Download `envmn_windows-gnu_x64.exe` from the [Releases page](https://github.com/devark28/envmn/releases/latest).
+2. Rename it to `envmn.exe` (optional, for convenience).
+3. Move it to a directory that is on your `PATH`, for example `C:\Windows\System32\`, or add its location to your `PATH` environment variable:
+   - Open **System Properties** → **Environment Variables**.
+   - Under **System variables**, select `Path` and click **Edit**.
+   - Add the folder where you placed `envmn.exe`.
+4. Open a new Command Prompt or PowerShell window and verify:
+
+```powershell
+envmn version
+```
+
+### Verify (Linux)
 
 ```bash
 envmn version
