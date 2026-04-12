@@ -33,7 +33,7 @@ sudo mv envmn /usr/local/bin/
 
 1. Download `envmn_windows-gnu_x64.exe` from the [Releases page](https://github.com/devark28/envmn/releases/latest).
 2. Rename it to `envmn.exe` (optional, for convenience).
-3. Move it to a directory that is on your `PATH`, for example `C:\Windows\System32\`, or add its location to your `PATH` environment variable:
+3. Add its location to your `PATH` environment variable:
    - Open **System Properties** → **Environment Variables**.
    - Under **System variables**, select `Path` and click **Edit**.
    - Add the folder where you placed `envmn.exe`.
