@@ -3,7 +3,7 @@ use crate::parser::constants;
 use crate::parser::tokens::Block;
 use crate::parser::tokens::Document;
 use crate::parser::tokens::variable::Variable;
-use crate::parser::validators::{validate_block_name, validate_variable_name};
+use crate::parser::validators::{validate_block_name, validate_tag, validate_variable_name};
 use std::fs;
 use std::ops::Deref;
 
@@ -67,6 +67,9 @@ impl Parser {
                     )));
                 }
                 validate_block_name(idx as u16, name)?;
+                for tag in &tags {
+                    validate_tag(idx as u16, tag)?;
+                }
                 self.current_block = Some(Block::new_with_tags(name, tags));
             } else if line.starts_with(constants::BLOCK_END_SYMBOL) {
                 let block = match self.current_block.take() {
@@ -78,6 +81,14 @@ impl Parser {
                     }
                 };
                 self.document.add_block(block)?;
+            } else if self
+                .current_block
+                .as_ref()
+                .is_some_and(|block| block.is_encrypted())
+            {
+                if line.trim().len() > 0 {
+                    self.get_working_block_mut()?.add_raw(line);
+                }
             } else if line.starts_with(constants::COMMENT_SYMBOL) {
                 let comment = line
                     .trim_start_matches(constants::COMMENT_SYMBOL)
@@ -96,7 +107,6 @@ impl Parser {
                 self.get_working_block_mut()?.add_variable(variable)?;
             }
         }
-        dbg!(self.document.clone());
         Ok(self.document)
     }
     pub fn parse_file(self, file_path: &str) -> Result<Document, Error> {

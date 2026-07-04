@@ -1,5 +1,7 @@
 use crate::error::{Error, ParsingErrors};
-use crate::parser::constants::{BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME};
+use crate::parser::constants::{
+    BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME, ENCRYPTED_BLOCK_TAG,
+};
 use crate::parser::tokens::line::Line;
 use crate::parser::tokens::variable::Variable;
 use indexmap::IndexSet;
@@ -21,6 +23,7 @@ impl Block {
             lines: IndexSet::new(),
         }
     }
+    #[allow(dead_code)] // used by tests
     pub fn new(name: &str) -> Self {
         Block {
             name: name.to_string(),
@@ -47,6 +50,23 @@ impl Block {
     pub fn add_comment(&mut self, comment: &str) {
         self.lines.insert(Line::Comment(comment.to_string()));
     }
+    pub fn add_raw(&mut self, line: &str) {
+        self.lines.insert(Line::Raw(line.to_string()));
+    }
+    pub fn is_encrypted(&self) -> bool {
+        self.tags.contains(ENCRYPTED_BLOCK_TAG)
+    }
+    pub fn identifier(&self) -> String {
+        if self.tags.is_empty() {
+            self.name.clone()
+        } else {
+            format!(
+                "{} [{}]",
+                self.name,
+                self.tags.iter().cloned().collect::<Vec<_>>().join(", ")
+            )
+        }
+    }
 }
 
 impl Display for Block {
@@ -64,20 +84,15 @@ impl Display for Block {
         } else {
             write!(
                 f,
-                "{0} {2}{4}\n{3}\n{1}",
+                "{0} {2}\n{3}\n{1}",
                 BLOCK_START_SYMBOL,
                 BLOCK_END_SYMBOL,
-                self.name,
+                self.identifier(),
                 self.lines
                     .iter()
                     .map(ToString::to_string)
                     .collect::<Vec<_>>()
-                    .join("\n"),
-                if self.tags.len() > 0 {
-                    format!(" [{}]", self.tags.clone().into_iter().collect::<Vec<_>>().join(", "))
-                } else {
-                    String::new()
-                }
+                    .join("\n")
             )
         }
     }
@@ -98,12 +113,6 @@ impl Hash for Block {
     }
 }
 
-/*
-TODO: add tests for tags operations
-    - add tag to named block
-    - tags contribute to uniqueness of block
-    - proper display of tags
- */
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -156,6 +165,70 @@ mod tests {
             block.add_variable(Variable::new("KEY", "value")).unwrap();
             block.add_variable(Variable::new("KEY", "value")).unwrap();
         }
+
+        #[test]
+        fn add_raw_line() {
+            let mut block = Block::new("test");
+            block.add_raw("08debe3d42ade916");
+            assert_eq!(block.lines.len(), 1);
+            assert!(matches!(block.lines.first().unwrap(), Line::Raw(_)));
+        }
+
+        #[test]
+        fn add_same_raw_line() {
+            let mut block = Block::new("test");
+            block.add_raw("08debe3d42ade916");
+            block.add_raw("08debe3d42ade916");
+            assert_eq!(block.lines.len(), 2);
+        }
+    }
+
+    #[cfg(test)]
+    mod tags {
+        use super::*;
+
+        #[test]
+        fn new_with_tags_stores_tags() {
+            let block = Block::new_with_tags("test", vec!["db".to_string(), "smtp".to_string()]);
+            assert_eq!(block.tags.len(), 2);
+            assert!(block.tags.contains("db"));
+            assert!(block.tags.contains("smtp"));
+        }
+
+        #[test]
+        fn tags_contribute_to_uniqueness() {
+            let untagged = Block::new("test");
+            let tagged = Block::new_with_tags("test", vec!["db".to_string()]);
+            let other_tag = Block::new_with_tags("test", vec!["smtp".to_string()]);
+            assert_ne!(untagged, tagged);
+            assert_ne!(tagged, other_tag);
+        }
+
+        #[test]
+        fn tag_order_does_not_affect_equality() {
+            let block1 = Block::new_with_tags("test", vec!["db".to_string(), "smtp".to_string()]);
+            let block2 = Block::new_with_tags("test", vec!["smtp".to_string(), "db".to_string()]);
+            assert_eq!(block1, block2);
+        }
+
+        #[test]
+        fn is_encrypted() {
+            let plain = Block::new_with_tags("test", vec!["db".to_string()]);
+            let encrypted = Block::new_with_tags(
+                "test",
+                vec!["db".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
+            );
+            assert!(!plain.is_encrypted());
+            assert!(encrypted.is_encrypted());
+        }
+
+        #[test]
+        fn identifier_with_and_without_tags() {
+            let untagged = Block::new("test");
+            let tagged = Block::new_with_tags("test", vec!["db".to_string(), "smtp".to_string()]);
+            assert_eq!(untagged.identifier(), "test");
+            assert_eq!(tagged.identifier(), "test [db, smtp]");
+        }
     }
 
     #[cfg(test)]
@@ -174,6 +247,33 @@ mod tests {
             assert_eq!(
                 block.to_string(),
                 format!("{BLOCK_START_SYMBOL} test\n\n{BLOCK_END_SYMBOL}")
+            );
+        }
+
+        #[test]
+        fn tagged_block() {
+            let mut block =
+                Block::new_with_tags("test", vec!["db".to_string(), "smtp".to_string()]);
+            block.add_variable(Variable::new("KEY", "value")).unwrap();
+            assert_eq!(
+                block.to_string(),
+                format!("{BLOCK_START_SYMBOL} test [db, smtp]\nKEY=value\n{BLOCK_END_SYMBOL}")
+            );
+        }
+
+        #[test]
+        fn encrypted_block_displays_raw_lines_verbatim() {
+            let mut block = Block::new_with_tags(
+                "test",
+                vec!["smtp".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
+            );
+            block.add_raw("08debe3d42ade916");
+            block.add_raw("eeda8bcff5d67646");
+            assert_eq!(
+                block.to_string(),
+                format!(
+                    "{BLOCK_START_SYMBOL} test [smtp, {ENCRYPTED_BLOCK_TAG}]\n08debe3d42ade916\needa8bcff5d67646\n{BLOCK_END_SYMBOL}"
+                )
             );
         }
 
