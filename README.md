@@ -11,6 +11,7 @@ It helps you lint, format, and switch between environment blocks — like `dev` 
 
 * **Block-based structure** — group related variables into labeled sections
 * **Switch between environments** — move a block (e.g., `prod_database`) to the bottom to make it active
+* **Tags** — annotate blocks with resource tags like `[db]` or `[smtp]`, so one environment name can cover several resources
 * **Lint & format** — check for malformed lines, duplicates, and inconsistent formatting
 * **Pipe-friendly** — read from stdin or directly modify files in place
 * **Human-readable output** — no noise, just clean `.env` management
@@ -53,6 +54,7 @@ Commands:
   lint                  Check for syntax and linting errors
   format                Pretty-format the file
   pick <block>          Reorder the file by moving the specified block down
+                        (use --tag/-t to narrow the match when several blocks share a name)
 
 Input modes:
   - If data is piped in, envmn reads from standard input and writes to standard output.
@@ -139,6 +141,63 @@ Now, all the `DB_*` variables from `prod_database` override the ones from `dev_d
 
 ---
 
+## Tags
+
+Block headers can carry **tags** in square brackets:
+
+```bash
+#@ local [db]
+DB_HOST=localhost
+##
+
+#@ local [smtp]
+MAILGUN_API_KEY=key-xyz123456789
+##
+
+#@ remote [db]
+DB_HOST=example.com
+##
+```
+
+The block name is the environment (`local`, `remote`) and the tags describe the resource (`db`, `smtp`).
+Tag names follow the same rules as block names: lowercase letters, digits, and underscores, not starting with a digit.
+
+Two blocks may share a name as long as their tags differ. `list` shows tags next to each block name:
+
+```
+Blocks (4):
+- default
+- local [db]
+- local [smtp]
+- remote [db]
+```
+
+When several blocks share a name, narrow `pick` with `--tag` (repeatable):
+
+```bash
+envmn pick local --tag db .env   # picks 'local [db]'
+envmn pick local .env            # error: ambiguous, lists the candidates
+```
+
+A bare `pick <name>` still works whenever exactly one block matches the name.
+
+### Reserved tags
+
+Tags of the form `__name__` are reserved for special meanings. The only one recognized today is
+`__encrypted__`: it marks a block whose body is ciphertext rather than `KEY=VALUE` pairs.
+`envmn` preserves the body of such blocks verbatim (no parsing, linting, or reformatting of its lines):
+
+```bash
+#@ local [smtp, __encrypted__]
+08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136
+eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d
+##
+```
+
+Encryption and decryption themselves are not implemented yet.
+
+---
+
 ## Other Commands
 
 ### Lint
@@ -179,7 +238,7 @@ envmn help
 
 `envmn` parses `.env` files using a small Rust engine that:
 
-* **Detects labeled blocks** marked with `#@ block_name` and closed by `##`
+* **Detects labeled blocks** marked with `#@ block_name` (optionally tagged: `#@ block_name [tag1, tag2]`) and closed by `##`
 * **Normalizes variable lines** (trims whitespace, fixes quoting issues)
 * **Validates** each variable name and key/value format
 * **Applies block precedence**: variables from later blocks overwrite earlier definitions
