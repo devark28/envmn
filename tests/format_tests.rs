@@ -21,9 +21,9 @@ VAR=test
 VAR=test
 ##
 "#;
-    
+
     let mut temp_file = create_test_env_file(test_content);
-    
+
     let output = Command::new(get_binary_path())
         .arg("format")
         .arg(temp_file.path())

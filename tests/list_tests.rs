@@ -1,6 +1,6 @@
 mod common;
 
-use common::{create_test_env_file};
+use common::create_test_env_file;
 
 #[test]
 fn list_command_with_file() {
