@@ -21,7 +21,7 @@ impl Engine {
             Commands::Lint => Ok(()),
             Commands::List => Ok(self.process_list_cmd()),
             Commands::Format => Ok(self.process_format_cmd()),
-            Commands::Pick { block_name } => Ok(self.process_pick_cmd(block_name)),
+            Commands::Pick { block_name, tags } => Ok(self.process_pick_cmd(block_name, tags)),
             _ => Err(Error::CliError(CliErrors::NoOperationFound)),
         }
     }

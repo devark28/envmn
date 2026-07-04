@@ -15,11 +15,17 @@ pub struct Cli {
 
 #[derive(Clone, Debug)]
 pub enum Commands {
-    Version { name: String, version: String },
+    Version {
+        name: String,
+        version: String,
+    },
     Lint,
     Format,
     List,
-    Pick { block_name: String },
+    Pick {
+        block_name: String,
+        tags: Vec<String>,
+    },
 }
 
 impl Cli {
@@ -54,8 +60,11 @@ impl Cli {
             ArgCommands::List { file } => {
                 (Commands::List, Some(Self::resolve_input(file, stdin_input)))
             }
-            ArgCommands::Pick { block, file } => (
-                Commands::Pick { block_name: block },
+            ArgCommands::Pick { block, tags, file } => (
+                Commands::Pick {
+                    block_name: block,
+                    tags,
+                },
                 Some(Self::resolve_input(file, stdin_input)),
             ),
             ArgCommands::Version => (

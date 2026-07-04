@@ -19,21 +19,20 @@ impl Document {
     pub fn add_block(&mut self, block: Block) -> Result<(), Error> {
         if !self.blocks.insert(block.clone()) {
             return Err(Error::ParsingError(ParsingErrors::DuplicateBlock(
-                block.name,
+                block.identifier(),
             )));
         }
         Ok(())
     }
-    pub fn get_index(&self, name: &str) -> Option<usize> {
-        match self
-            .blocks
-            .get_index_of(&Block::new(name))
-            .ok_or(Error::AccessError(AccessErrors::BlockNotFound(
-                name.to_string(),
-            ))) {
-            Ok(index) => Some(index),
-            Err(_) => None,
-        }
+    pub fn find_indices(&self, name: &str, tags: &[String]) -> Vec<usize> {
+        self.blocks
+            .iter()
+            .enumerate()
+            .filter(|(_, block)| {
+                block.name == name && tags.iter().all(|tag| block.tags.contains(tag))
+            })
+            .map(|(index, _)| index)
+            .collect()
     }
     pub fn get_blocks(&self) -> Vec<&Block> {
         self.blocks.iter().collect::<Vec<_>>()
@@ -55,18 +54,30 @@ impl Document {
 }
 
 impl Document {
-    pub fn pick(&mut self, name: &str) -> Result<&Self, Error> {
+    pub fn pick(&mut self, name: &str, tags: &[String]) -> Result<&Self, Error> {
         if name == DEFAULT_BLOCK_NAME {
             return Err(Error::AccessError(AccessErrors::DefaultBlockNotMovable));
         }
-        match self.get_index(name) {
-            None => Err(Error::AccessError(AccessErrors::BlockNotFound(
-                name.to_string(),
-            ))),
-            Some(index) => {
-                self.blocks.move_index(index, self.blocks.len() - 1);
+        match self.find_indices(name, tags).as_slice() {
+            [] => {
+                let query = if tags.is_empty() {
+                    name.to_string()
+                } else {
+                    format!("{} [{}]", name, tags.join(", "))
+                };
+                Err(Error::AccessError(AccessErrors::BlockNotFound(query)))
+            }
+            [index] => {
+                self.blocks.move_index(*index, self.blocks.len() - 1);
                 Ok(self)
             }
+            indices => Err(Error::AccessError(AccessErrors::AmbiguousBlock(
+                name.to_string(),
+                indices
+                    .iter()
+                    .map(|&index| self.blocks[index].identifier())
+                    .collect(),
+            ))),
         }
     }
 }
@@ -135,20 +146,50 @@ mod tests {
     }
 
     #[test]
-    fn get_block_index_by_name() {
+    fn find_block_indices_by_name() {
         let mut doc = Document::new();
         doc.add_block(Block::new("test")).unwrap();
-        let index = doc.get_index("test");
-        assert!(index.is_some());
-        assert_eq!(index.unwrap(), 1);
+        assert_eq!(doc.find_indices("test", &[]), vec![1]);
     }
 
     #[test]
-    #[should_panic]
-    fn get_non_existing_block_index() {
+    fn find_non_existing_block_indices() {
         let doc = Document::new();
-        let index = doc.get_index("test");
-        index.unwrap();
+        assert!(doc.find_indices("test", &[]).is_empty());
+    }
+
+    #[test]
+    fn find_tagged_block_by_name_only() {
+        let mut doc = Document::new();
+        doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+            .unwrap();
+        assert_eq!(doc.find_indices("test", &[]), vec![1]);
+    }
+
+    #[test]
+    fn find_indices_by_tag_subset() {
+        let mut doc = Document::new();
+        doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+            .unwrap();
+        doc.add_block(Block::new_with_tags(
+            "test",
+            vec!["smtp".to_string(), "backup".to_string()],
+        ))
+        .unwrap();
+        assert_eq!(doc.find_indices("test", &[]), vec![1, 2]);
+        assert_eq!(doc.find_indices("test", &["db".to_string()]), vec![1]);
+        assert_eq!(doc.find_indices("test", &["smtp".to_string()]), vec![2]);
+        assert!(doc.find_indices("test", &["nope".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn same_name_blocks_with_different_tags_coexist() {
+        let mut doc = Document::new();
+        doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+            .unwrap();
+        doc.add_block(Block::new_with_tags("test", vec!["smtp".to_string()]))
+            .unwrap();
+        assert_eq!(doc.blocks_len(), 3);
     }
 
     #[test]
@@ -178,8 +219,54 @@ mod tests {
             let mut doc = Document::new();
             doc.add_block(Block::new("test")).unwrap();
             doc.add_block(Block::new("test1")).unwrap();
-            doc.pick("test").unwrap();
+            doc.pick("test", &[]).unwrap();
             assert_eq!(doc.blocks.last().unwrap().name, "test");
+        }
+
+        #[test]
+        fn pick_unique_tagged_block_by_name_only() {
+            let mut doc = Document::new();
+            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+                .unwrap();
+            doc.add_block(Block::new("test1")).unwrap();
+            doc.pick("test", &[]).unwrap();
+            assert_eq!(doc.blocks.last().unwrap().name, "test");
+        }
+
+        #[test]
+        fn pick_block_by_tag() {
+            let mut doc = Document::new();
+            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+                .unwrap();
+            doc.add_block(Block::new_with_tags("test", vec!["smtp".to_string()]))
+                .unwrap();
+            doc.pick("test", &["db".to_string()]).unwrap();
+            let last = doc.blocks.last().unwrap();
+            assert_eq!(last.name, "test");
+            assert!(last.tags.contains("db"));
+        }
+
+        #[test]
+        fn pick_ambiguous_block_fails() {
+            let mut doc = Document::new();
+            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+                .unwrap();
+            doc.add_block(Block::new_with_tags("test", vec!["smtp".to_string()]))
+                .unwrap();
+            let error = doc.pick("test", &[]).unwrap_err();
+            assert!(matches!(
+                error,
+                Error::AccessError(AccessErrors::AmbiguousBlock(_, _))
+            ));
+        }
+
+        #[test]
+        #[should_panic]
+        fn pick_non_existing_tag_fails() {
+            let mut doc = Document::new();
+            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+                .unwrap();
+            doc.pick("test", &["nope".to_string()]).unwrap();
         }
     }
 

@@ -5,8 +5,8 @@ use std::fs;
 use std::process::exit;
 
 impl Engine {
-    pub fn process_pick_cmd(mut self, block_name: String) {
-        match self.document.pick(block_name.as_str()) {
+    pub fn process_pick_cmd(mut self, block_name: String, tags: Vec<String>) {
+        match self.document.pick(block_name.as_str(), &tags) {
             Ok(document) => {
                 let Some(input) = &self.cli.input else {
                     eprintln!("{}", CliErrors::NoInputFound);

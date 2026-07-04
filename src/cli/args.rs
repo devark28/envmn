@@ -1,5 +1,5 @@
-use clap::{Parser, Subcommand};
 use crate::cli::Source;
+use clap::{Parser, Subcommand};
 use std::io::{IsTerminal, Read, stdin};
 
 #[derive(Parser)]
@@ -15,6 +15,7 @@ Examples:
   cat .env | envmn lint
   envmn format .env
   envmn pick database_block .env > out.env
+  envmn pick local --tag db .env
   envmn --version
 
 For more information, visit: https://github.com/devark28/envmn")]
@@ -22,7 +23,7 @@ pub struct Args {
     /// Display the current version
     #[arg(short, long)]
     pub version: bool,
-    
+
     #[command(subcommand)]
     pub command: Option<ArgCommands>,
 }
@@ -48,6 +49,9 @@ pub enum ArgCommands {
     Pick {
         /// Block name to move
         block: String,
+        /// Narrow the match by tag (repeatable)
+        #[arg(short = 't', long = "tag")]
+        tags: Vec<String>,
         /// File to modify (defaults to .env)
         file: Option<String>,
     },
