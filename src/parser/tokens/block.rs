@@ -1,7 +1,5 @@
 use crate::error::{Error, ParsingErrors};
-use crate::parser::constants::{
-    BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME, ENCRYPTED_BLOCK_TAG,
-};
+use crate::parser::constants::{BLOCK_END_SYMBOL, BLOCK_START_SYMBOL, DEFAULT_BLOCK_NAME};
 use crate::parser::tokens::line::Line;
 use crate::parser::tokens::variable::Variable;
 use crate::parser::validators::is_reserved_tag;
@@ -51,14 +49,14 @@ impl Block {
     pub fn add_comment(&mut self, comment: &str) {
         self.lines.insert(Line::Comment(comment.to_string()));
     }
-    pub fn add_raw(&mut self, line: &str) {
-        self.lines.insert(Line::Raw(line.to_string()));
-    }
-    pub fn is_encrypted(&self) -> bool {
-        self.tags.contains(ENCRYPTED_BLOCK_TAG)
-    }
     pub fn resource_tags(&self) -> impl Iterator<Item = &String> {
         self.tags.iter().filter(|tag| !is_reserved_tag(tag))
+    }
+    pub fn variable_keys(&self) -> impl Iterator<Item = &String> {
+        self.lines.iter().filter_map(|line| match line {
+            Line::Variable(variable) => Some(&variable.key),
+            _ => None,
+        })
     }
     pub fn shares_resource_tag(&self, other: &Block) -> bool {
         self.resource_tags()
@@ -173,27 +171,12 @@ mod tests {
             block.add_variable(Variable::new("KEY", "value")).unwrap();
             block.add_variable(Variable::new("KEY", "value")).unwrap();
         }
-
-        #[test]
-        fn add_raw_line() {
-            let mut block = Block::new("test");
-            block.add_raw("08debe3d42ade916");
-            assert_eq!(block.lines.len(), 1);
-            assert!(matches!(block.lines.first().unwrap(), Line::Raw(_)));
-        }
-
-        #[test]
-        fn add_same_raw_line() {
-            let mut block = Block::new("test");
-            block.add_raw("08debe3d42ade916");
-            block.add_raw("08debe3d42ade916");
-            assert_eq!(block.lines.len(), 2);
-        }
     }
 
     #[cfg(test)]
     mod tags {
         use super::*;
+        use crate::parser::constants::ENCRYPTED_BLOCK_TAG;
 
         #[test]
         fn new_with_tags_stores_tags() {
@@ -217,17 +200,6 @@ mod tests {
             let block1 = Block::new_with_tags("test", vec!["db".to_string(), "smtp".to_string()]);
             let block2 = Block::new_with_tags("test", vec!["smtp".to_string(), "db".to_string()]);
             assert_eq!(block1, block2);
-        }
-
-        #[test]
-        fn is_encrypted() {
-            let plain = Block::new_with_tags("test", vec!["db".to_string()]);
-            let encrypted = Block::new_with_tags(
-                "test",
-                vec!["db".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
-            );
-            assert!(!plain.is_encrypted());
-            assert!(encrypted.is_encrypted());
         }
 
         #[test]
@@ -300,22 +272,6 @@ mod tests {
             assert_eq!(
                 block.to_string(),
                 format!("{BLOCK_START_SYMBOL} test [db, smtp]\nKEY=value\n{BLOCK_END_SYMBOL}")
-            );
-        }
-
-        #[test]
-        fn encrypted_block_displays_raw_lines_verbatim() {
-            let mut block = Block::new_with_tags(
-                "test",
-                vec!["smtp".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
-            );
-            block.add_raw("08debe3d42ade916");
-            block.add_raw("eeda8bcff5d67646");
-            assert_eq!(
-                block.to_string(),
-                format!(
-                    "{BLOCK_START_SYMBOL} test [smtp, {ENCRYPTED_BLOCK_TAG}]\n08debe3d42ade916\needa8bcff5d67646\n{BLOCK_END_SYMBOL}"
-                )
             );
         }
 

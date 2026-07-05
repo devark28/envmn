@@ -5,7 +5,6 @@ use std::fmt::{Display, Formatter};
 pub enum Line {
     Comment(String),
     Variable(Variable),
-    Raw(String),
 }
 
 impl Display for Line {
@@ -13,7 +12,6 @@ impl Display for Line {
         match self {
             Line::Comment(comment) => write!(f, "# {comment}"),
             Line::Variable(variable) => write!(f, "{variable}"),
-            Line::Raw(raw) => write!(f, "{raw}"),
         }
     }
 }
@@ -45,18 +43,5 @@ mod tests {
         let line1 = Line::Comment("comment".to_string());
         let line2 = Line::Comment("comment".to_string());
         assert_ne!(line1, line2);
-    }
-
-    #[test]
-    fn line_inequality_by_raw() {
-        let line1 = Line::Raw("08debe3d42ade916".to_string());
-        let line2 = Line::Raw("08debe3d42ade916".to_string());
-        assert_ne!(line1, line2);
-    }
-
-    #[test]
-    fn raw_line_displays_verbatim() {
-        let line = Line::Raw("08debe3d42ade916".to_string());
-        assert_eq!(line.to_string(), "08debe3d42ade916");
     }
 }

@@ -81,14 +81,6 @@ impl Parser {
                     }
                 };
                 self.document.add_block(block)?;
-            } else if self
-                .current_block
-                .as_ref()
-                .is_some_and(|block| block.is_encrypted())
-            {
-                if line.trim().len() > 0 {
-                    self.get_working_block_mut()?.add_raw(line);
-                }
             } else if line.starts_with(constants::COMMENT_SYMBOL) {
                 let comment = line
                     .trim_start_matches(constants::COMMENT_SYMBOL)
