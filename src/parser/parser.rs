@@ -35,23 +35,26 @@ impl Parser {
                             identifier.find(constants::TAGS_START_SYMBOL),
                             identifier.find(constants::TAGS_END_SYMBOL),
                         );
-                        let tags: Vec<String> = match (start_tags_idx, end_tags_idx) {
-                            (Some(start), Some(end)) => identifier[start + 1..end]
-                                .split(',')
-                                .map(|s| s.trim().to_string())
-                                .filter(|s| !s.is_empty())
-                                .collect(),
-                            (None, None) => Vec::new(),
+                        match (start_tags_idx, end_tags_idx) {
+                            (Some(start), Some(end)) if start < end => {
+                                if !identifier[end + 1..].trim().is_empty() {
+                                    return Err(Error::ParsingError(ParsingErrors::MalFormedTags(
+                                        idx as u16,
+                                    )));
+                                }
+                                let tags = identifier[start + 1..end]
+                                    .split(',')
+                                    .map(|s| s.trim().to_string())
+                                    .collect();
+                                (identifier[..start].trim(), tags)
+                            }
+                            (None, None) => (identifier, Vec::new()),
                             _ => {
                                 return Err(Error::ParsingError(ParsingErrors::MalFormedTags(
                                     idx as u16,
                                 )));
                             }
-                        };
-                        (
-                            identifier[..start_tags_idx.unwrap_or(identifier.len())].trim(),
-                            tags,
-                        )
+                        }
                     }
                     Some(Block { name, .. }) => {
                         return Err(Error::ParsingError(ParsingErrors::NestedBlock(

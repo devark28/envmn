@@ -223,6 +223,59 @@ fn malformed_tags_error() {
 }
 
 #[test]
+fn reversed_tag_brackets_error() {
+    // regression: this used to panic with a byte-range slice error
+    let temp_file = create_test_env_file("#@ local ]db[\nKEY=value\n##\n");
+
+    let output = Command::new(get_binary_path())
+        .arg("lint")
+        .arg(temp_file.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Malformed tags"));
+}
+
+#[test]
+fn trailing_content_after_tags_error() {
+    // regression: content after ']' used to be silently discarded
+    let temp_file = create_test_env_file("#@ local [db] junk\nKEY=value\n##\n");
+
+    let output = Command::new(get_binary_path())
+        .arg("lint")
+        .arg(temp_file.path())
+        .output()
+        .expect("Failed to execute command");
+
+    assert!(!output.status.success());
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("Malformed tags"));
+}
+
+#[test]
+fn empty_tag_item_error() {
+    // regression: '[db,]' and '[]' used to be silently normalized
+    for content in [
+        "#@ local [db,]\nKEY=value\n##\n",
+        "#@ local []\nKEY=value\n##\n",
+    ] {
+        let temp_file = create_test_env_file(content);
+
+        let output = Command::new(get_binary_path())
+            .arg("lint")
+            .arg(temp_file.path())
+            .output()
+            .expect("Failed to execute command");
+
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr);
+        assert!(stderr.contains("Tag name can not be empty"));
+    }
+}
+
+#[test]
 fn invalid_tag_character_error() {
     let temp_file = create_test_env_file("#@ local [DB]\nKEY=value\n##\n");
 
