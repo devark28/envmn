@@ -172,14 +172,34 @@ Blocks (4):
 - remote [db]
 ```
 
-When several blocks share a name, narrow `pick` with `--tag` (repeatable):
+### Picking with tags
+
+Blocks that share a tag form a **group** competing for the same variables, and the **last block of a group is the active one**. Picking a tagged block doesn't send it to the bottom of the file — it slides to just **after the last block of its group**, so related blocks stay together and the rest of the file doesn't move:
 
 ```bash
-envmn pick local --tag db .env   # picks 'local [db]'
-envmn pick local .env            # error: ambiguous, lists the candidates
+envmn pick remote --tag db .env  # 'remote [db]' slides right after the last db block
+envmn pick remote .env           # picks ALL blocks named remote, each within its own group
 ```
 
-A bare `pick <name>` still works whenever exactly one block matches the name.
+A bare `pick <name>` switches the whole environment at once: every block with that name becomes active within its group. Use `--tag` (repeatable) to switch a single resource. Picking a block that is already active is a no-op. Untagged blocks keep the classic behavior and move to the bottom of the file.
+
+### Recommended layout
+
+`envmn` is opinionated: give each block **one resource tag**, and use the block *name* to bundle resources into an environment:
+
+```bash
+#@ remote [db]
+DB_HOST=example.com
+##
+
+#@ remote [cache]
+CACHE_HOST=example.com
+##
+```
+
+`envmn pick remote` then switches db and cache together, and `envmn pick other --tag cache` later swaps just the cache — any mix of environments is a sequence of picks.
+
+Multiple tags on one block (`#@ remote [db, cache]`) are supported and mean "these resources always switch together as one unit": picking such a block slides it after *all* blocks it shares a tag with, activating everything it defines. Prefer split single-tag blocks unless you really want that all-or-nothing behavior, since a multi-tag block duplicates the variables of every group it belongs to.
 
 ### Reserved tags
 
