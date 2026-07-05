@@ -1,8 +1,8 @@
 use crate::error::{AccessErrors, Error, ParsingErrors};
 use crate::parser::constants::DEFAULT_BLOCK_NAME;
 use crate::parser::tokens::block::Block;
-use indexmap::IndexSet;
 use indexmap::set::MutableValues;
+use indexmap::{IndexMap, IndexSet};
 use std::fmt::{Display, Formatter};
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -36,6 +36,16 @@ impl Document {
     }
     pub fn get_blocks(&self) -> Vec<&Block> {
         self.blocks.iter().collect::<Vec<_>>()
+    }
+    /// The active block per resource tag: the last block carrying the tag wins
+    pub fn active_by_tag(&self) -> IndexMap<String, String> {
+        let mut active = IndexMap::new();
+        for block in &self.blocks {
+            for tag in block.resource_tags() {
+                active.insert(tag.clone(), block.identifier());
+            }
+        }
+        active
     }
     pub fn blocks_len(&self) -> usize {
         self.blocks.len()
@@ -197,6 +207,26 @@ mod tests {
         assert_eq!(doc.find_indices("test", &["db".to_string()]), vec![1]);
         assert_eq!(doc.find_indices("test", &["smtp".to_string()]), vec![2]);
         assert!(doc.find_indices("test", &["nope".to_string()]).is_empty());
+    }
+
+    #[test]
+    fn active_by_tag_is_last_block_per_tag() {
+        let mut doc = Document::new();
+        doc.add_block(Block::new_with_tags("local", vec!["db".to_string()]))
+            .unwrap();
+        doc.add_block(Block::new_with_tags("remote", vec!["db".to_string()]))
+            .unwrap();
+        doc.add_block(Block::new_with_tags(
+            "local",
+            vec!["smtp".to_string(), "__encrypted__".to_string()],
+        ))
+        .unwrap();
+        doc.add_block(Block::new("server")).unwrap();
+        let active = doc.active_by_tag();
+        assert_eq!(active.get("db").unwrap(), "remote [db]");
+        assert_eq!(active.get("smtp").unwrap(), "local [smtp, __encrypted__]");
+        assert!(active.get("__encrypted__").is_none());
+        assert_eq!(active.len(), 2);
     }
 
     #[test]

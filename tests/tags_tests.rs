@@ -21,8 +21,8 @@ SERVER_PORT="8080"
 ##
 
 #@ local [smtp, __encrypted__]
-08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136
-eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d
+MAILGUN_API_KEY=08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136
+MAILGUN_DOMAIN=eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d
 ##
 "#;
 
@@ -74,6 +74,8 @@ fn pick_with_tag_slides_block_after_its_group() {
         local_db_pos < server_pos,
         "picked block should stay with its group, not move to the bottom"
     );
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("db: 'local [db]' now active (was 'remote [db]')"));
 }
 
 #[test]
@@ -102,6 +104,10 @@ fn pick_by_name_switches_whole_environment() {
     assert!(local_db_pos < server_pos);
     // local [smtp] was already the only smtp block, so it stayed last
     assert!(local_smtp_pos > server_pos);
+    // only the tag whose active block changed is reported
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("db: 'local [db]' now active (was 'remote [db]')"));
+    assert!(!stderr.contains("smtp:"));
 }
 
 #[test]
@@ -145,6 +151,8 @@ fn pick_already_active_block_is_noop() {
     let server_pos = content.find("#@ server").unwrap();
     assert!(local_db_pos < remote_db_pos);
     assert!(remote_db_pos < server_pos);
+    let stderr = String::from_utf8_lossy(&output.stderr);
+    assert!(stderr.contains("'remote' is already active"));
 }
 
 #[test]
@@ -170,6 +178,8 @@ fn pick_untagged_block_moves_to_bottom() {
         server_pos > local_smtp_pos,
         "untagged blocks keep legacy move-to-bottom behavior"
     );
+    // untagged picks keep the classic silent behavior
+    assert!(output.stderr.is_empty());
 }
 
 #[test]
@@ -189,8 +199,12 @@ fn format_round_trips_encrypted_block() {
     );
     let content = fs::read_to_string(temp_file.path()).unwrap();
     assert!(content.contains("#@ local [smtp, __encrypted__]"));
-    assert!(content.contains("08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136"));
-    assert!(content.contains("eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d"));
+    assert!(content.contains(
+        "MAILGUN_API_KEY=08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136"
+    ));
+    assert!(content.contains(
+        "MAILGUN_DOMAIN=eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d"
+    ));
 }
 
 #[test]
