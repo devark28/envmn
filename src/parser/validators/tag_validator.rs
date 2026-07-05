@@ -3,6 +3,11 @@ use crate::parser::constants::ENCRYPTED_BLOCK_TAG;
 
 const RESERVED_TAGS: [&str; 1] = [ENCRYPTED_BLOCK_TAG];
 
+/// Dunder-form tags (`__x__`) carry special meaning instead of naming a resource
+pub fn is_reserved_tag(tag: &str) -> bool {
+    tag.len() > 4 && tag.starts_with("__") && tag.ends_with("__")
+}
+
 pub fn validate_tag(line: u16, tag: &str) -> Result<(), Error> {
     if tag.is_empty() {
         return Err(Error::NamingError(NamingErrors::TagNameEmpty));
@@ -28,11 +33,7 @@ pub fn validate_tag(line: u16, tag: &str) -> Result<(), Error> {
     }
 
     // Dunder form (__x__) is reserved for special tags
-    if tag.len() > 4
-        && tag.starts_with("__")
-        && tag.ends_with("__")
-        && !RESERVED_TAGS.contains(&tag)
-    {
+    if is_reserved_tag(tag) && !RESERVED_TAGS.contains(&tag) {
         return Err(Error::NamingError(NamingErrors::UnknownReservedTag(
             line,
             tag.to_string(),

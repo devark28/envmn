@@ -4,6 +4,7 @@ use crate::parser::constants::{
 };
 use crate::parser::tokens::line::Line;
 use crate::parser::tokens::variable::Variable;
+use crate::parser::validators::is_reserved_tag;
 use indexmap::IndexSet;
 use std::fmt::{Display, Formatter};
 use std::hash::{Hash, Hasher};
@@ -55,6 +56,13 @@ impl Block {
     }
     pub fn is_encrypted(&self) -> bool {
         self.tags.contains(ENCRYPTED_BLOCK_TAG)
+    }
+    pub fn resource_tags(&self) -> impl Iterator<Item = &String> {
+        self.tags.iter().filter(|tag| !is_reserved_tag(tag))
+    }
+    pub fn shares_resource_tag(&self, other: &Block) -> bool {
+        self.resource_tags()
+            .any(|tag| other.tags.contains(tag.as_str()))
     }
     pub fn identifier(&self) -> String {
         if self.tags.is_empty() {
@@ -220,6 +228,40 @@ mod tests {
             );
             assert!(!plain.is_encrypted());
             assert!(encrypted.is_encrypted());
+        }
+
+        #[test]
+        fn resource_tags_exclude_reserved() {
+            let block = Block::new_with_tags(
+                "test",
+                vec!["db".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
+            );
+            let resources: Vec<&String> = block.resource_tags().collect();
+            assert_eq!(resources, vec!["db"]);
+        }
+
+        #[test]
+        fn shares_resource_tag() {
+            let db = Block::new_with_tags("local", vec!["db".to_string()]);
+            let db_cache =
+                Block::new_with_tags("remote", vec!["db".to_string(), "cache".to_string()]);
+            let smtp = Block::new_with_tags("local", vec!["smtp".to_string()]);
+            assert!(db.shares_resource_tag(&db_cache));
+            assert!(db_cache.shares_resource_tag(&db));
+            assert!(!db.shares_resource_tag(&smtp));
+        }
+
+        #[test]
+        fn reserved_tags_are_not_shared_resources() {
+            let a = Block::new_with_tags(
+                "local",
+                vec!["db".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
+            );
+            let b = Block::new_with_tags(
+                "remote",
+                vec!["smtp".to_string(), ENCRYPTED_BLOCK_TAG.to_string()],
+            );
+            assert!(!a.shares_resource_tag(&b));
         }
 
         #[test]
