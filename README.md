@@ -183,6 +183,15 @@ envmn pick remote .env           # picks ALL blocks named remote, each within it
 
 A bare `pick <name>` switches the whole environment at once: every block with that name becomes active within its group. Use `--tag` (repeatable) to switch a single resource. Picking a block that is already active is a no-op. Untagged blocks keep the classic behavior and move to the bottom of the file.
 
+Every tagged pick reports what changed on stderr (stdout stays clean for piping), so switches that happen implicitly — e.g. a multi-tag block activating a resource you didn't name — are always visible:
+
+```
+$ envmn pick local --tag db .env
+db: 'local [db]' now active (was 'remote [db]')
+$ envmn pick local --tag db .env
+'local' is already active
+```
+
 ### Recommended layout
 
 `envmn` is opinionated: give each block **one resource tag**, and use the block *name* to bundle resources into an environment:
@@ -204,17 +213,19 @@ Multiple tags on one block (`#@ remote [db, cache]`) are supported and mean "the
 ### Reserved tags
 
 Tags of the form `__name__` are reserved for special meanings. The only one recognized today is
-`__encrypted__`: it marks a block whose body is ciphertext rather than `KEY=VALUE` pairs.
-`envmn` preserves the body of such blocks verbatim (no parsing, linting, or reformatting of its lines):
+`__encrypted__`: it marks a block whose **values** are ciphertext. Keys stay plaintext — keys are
+rarely the secret, values are — so encrypted blocks still parse, list, format, and lint like any
+other block:
 
 ```bash
 #@ local [smtp, __encrypted__]
-08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136
-eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d
+MAILGUN_API_KEY=08debe3d42ade91671f783a784fbed31dd3e897abae5439be07f885887217136
+MAILGUN_DOMAIN=eeda8bcff5d676460d8ea84bd0e941e4bf5ac466aa21e2512cc1a870e89fb17d
 ##
 ```
 
-Encryption and decryption themselves are not implemented yet.
+Encryption and decryption themselves are not implemented yet; the tag currently documents that the
+values are not usable as-is.
 
 ---
 
@@ -227,6 +238,15 @@ Check for syntax and formatting errors:
 ```bash
 envmn lint .env
 ```
+
+For tagged files, lint also checks **variable symmetry**: blocks sharing a resource tag compete for the same variables, so they should define the same keys. Single-tag blocks are the ground truth for their tag; a multi-tag block is checked against the union of its tags — extra keys are only flagged when every one of its tags has a single-tag block to learn from. Findings are advisory: they print as warnings on stderr and the exit code stays 0.
+
+```
+warning: 'remote [db]' is missing variable 'DB_PORT' defined by its group
+warning: 'remote [db, cache]' defines variable 'FOO' that belongs to none of its tags
+```
+
+Encrypted blocks are checked too: their keys stay plaintext, only their values are ciphertext.
 
 ### Format
 
