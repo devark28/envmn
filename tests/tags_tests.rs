@@ -45,14 +45,14 @@ fn list_shows_tags() {
 }
 
 #[test]
-fn pick_with_tag_selects_matching_block() {
+fn pick_with_tag_slides_block_after_its_group() {
     let temp_file = create_test_env_file(TAGGED_CONTENT);
 
     let output = Command::new(get_binary_path())
         .arg("pick")
         .arg("local")
         .arg("--tag")
-        .arg("smtp")
+        .arg("db")
         .arg(temp_file.path())
         .output()
         .expect("Failed to execute command");
@@ -63,18 +63,21 @@ fn pick_with_tag_selects_matching_block() {
         String::from_utf8_lossy(&output.stderr)
     );
     let content = fs::read_to_string(temp_file.path()).unwrap();
-    let smtp_pos = content.find("#@ local [smtp, __encrypted__]").unwrap();
-    let db_pos = content.find("#@ local [db]").unwrap();
+    let local_db_pos = content.find("#@ local [db]").unwrap();
+    let remote_db_pos = content.find("#@ remote [db]").unwrap();
     let server_pos = content.find("#@ server").unwrap();
-    assert!(smtp_pos > db_pos, "picked block should move to the bottom");
     assert!(
-        smtp_pos > server_pos,
-        "picked block should move to the bottom"
+        local_db_pos > remote_db_pos,
+        "picked block should slide after its group"
+    );
+    assert!(
+        local_db_pos < server_pos,
+        "picked block should stay with its group, not move to the bottom"
     );
 }
 
 #[test]
-fn pick_ambiguous_block_errors_with_candidates() {
+fn pick_by_name_switches_whole_environment() {
     let temp_file = create_test_env_file(TAGGED_CONTENT);
 
     let output = Command::new(get_binary_path())
@@ -84,11 +87,21 @@ fn pick_ambiguous_block_errors_with_candidates() {
         .output()
         .expect("Failed to execute command");
 
-    assert!(!output.status.success());
-    let stderr = String::from_utf8_lossy(&output.stderr);
-    assert!(stderr.contains("--tag"));
-    assert!(stderr.contains("local [db]"));
-    assert!(stderr.contains("local [smtp, __encrypted__]"));
+    assert!(
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let content = fs::read_to_string(temp_file.path()).unwrap();
+    let local_db_pos = content.find("#@ local [db]").unwrap();
+    let remote_db_pos = content.find("#@ remote [db]").unwrap();
+    let server_pos = content.find("#@ server").unwrap();
+    let local_smtp_pos = content.find("#@ local [smtp, __encrypted__]").unwrap();
+    // local [db] became active within its group, without leaving it
+    assert!(local_db_pos > remote_db_pos);
+    assert!(local_db_pos < server_pos);
+    // local [smtp] was already the only smtp block, so it stayed last
+    assert!(local_smtp_pos > server_pos);
 }
 
 #[test]
@@ -110,7 +123,7 @@ fn pick_with_unknown_tag_errors() {
 }
 
 #[test]
-fn pick_unique_tagged_block_by_name_only() {
+fn pick_already_active_block_is_noop() {
     let temp_file = create_test_env_file(TAGGED_CONTENT);
 
     let output = Command::new(get_binary_path())
@@ -125,12 +138,37 @@ fn pick_unique_tagged_block_by_name_only() {
         "stderr: {}",
         String::from_utf8_lossy(&output.stderr)
     );
+    // remote [db] is already the last block of its group, so order is unchanged
     let content = fs::read_to_string(temp_file.path()).unwrap();
-    let remote_pos = content.find("#@ remote [db]").unwrap();
+    let local_db_pos = content.find("#@ local [db]").unwrap();
+    let remote_db_pos = content.find("#@ remote [db]").unwrap();
     let server_pos = content.find("#@ server").unwrap();
+    assert!(local_db_pos < remote_db_pos);
+    assert!(remote_db_pos < server_pos);
+}
+
+#[test]
+fn pick_untagged_block_moves_to_bottom() {
+    let temp_file = create_test_env_file(TAGGED_CONTENT);
+
+    let output = Command::new(get_binary_path())
+        .arg("pick")
+        .arg("server")
+        .arg(temp_file.path())
+        .output()
+        .expect("Failed to execute command");
+
     assert!(
-        remote_pos > server_pos,
-        "picked block should move to the bottom"
+        output.status.success(),
+        "stderr: {}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    let content = fs::read_to_string(temp_file.path()).unwrap();
+    let server_pos = content.find("#@ server").unwrap();
+    let local_smtp_pos = content.find("#@ local [smtp, __encrypted__]").unwrap();
+    assert!(
+        server_pos > local_smtp_pos,
+        "untagged blocks keep legacy move-to-bottom behavior"
     );
 }
 

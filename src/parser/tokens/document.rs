@@ -58,27 +58,44 @@ impl Document {
         if name == DEFAULT_BLOCK_NAME {
             return Err(Error::AccessError(AccessErrors::DefaultBlockNotMovable));
         }
-        match self.find_indices(name, tags).as_slice() {
-            [] => {
-                let query = if tags.is_empty() {
-                    name.to_string()
-                } else {
-                    format!("{} [{}]", name, tags.join(", "))
-                };
-                Err(Error::AccessError(AccessErrors::BlockNotFound(query)))
-            }
-            [index] => {
-                self.blocks.move_index(*index, self.blocks.len() - 1);
-                Ok(self)
-            }
-            indices => Err(Error::AccessError(AccessErrors::AmbiguousBlock(
-                name.to_string(),
-                indices
-                    .iter()
-                    .map(|&index| self.blocks[index].identifier())
-                    .collect(),
-            ))),
+        let indices = self.find_indices(name, tags);
+        if indices.is_empty() {
+            let query = if tags.is_empty() {
+                name.to_string()
+            } else {
+                format!("{} [{}]", name, tags.join(", "))
+            };
+            return Err(Error::AccessError(AccessErrors::BlockNotFound(query)));
         }
+        // Process in file order so picked blocks keep their relative order
+        let picked: Vec<Block> = indices.iter().map(|&i| self.blocks[i].clone()).collect();
+        for block in &picked {
+            let from = self
+                .blocks
+                .get_index_of(block)
+                .expect("picked block is in the document");
+            let to = self.destination_index(from);
+            if to > from {
+                self.blocks.move_index(from, to);
+            }
+        }
+        Ok(self)
+    }
+
+    /// Where a picked block becomes active: right after the last block sharing
+    /// any of its resource tags, or the end of the file for untagged blocks
+    fn destination_index(&self, from: usize) -> usize {
+        let block = &self.blocks[from];
+        if block.resource_tags().next().is_none() {
+            return self.blocks.len() - 1;
+        }
+        self.blocks
+            .iter()
+            .enumerate()
+            .filter(|(_, other)| other.shares_resource_tag(block))
+            .map(|(index, _)| index)
+            .max()
+            .unwrap_or(from)
     }
 }
 
@@ -223,49 +240,138 @@ mod tests {
             assert_eq!(doc.blocks.last().unwrap().name, "test");
         }
 
+        fn tagged(name: &str, tags: &[&str]) -> Block {
+            Block::new_with_tags(name, tags.iter().map(ToString::to_string).collect())
+        }
+
+        fn names(doc: &Document) -> Vec<&str> {
+            doc.blocks.iter().map(|b| b.name.as_str()).collect()
+        }
+
         #[test]
-        fn pick_unique_tagged_block_by_name_only() {
+        fn pick_tagged_block_slides_after_its_group() {
+            // local[db], other, remote[db], server — picking local[db] must land
+            // right after remote[db], not at the bottom
             let mut doc = Document::new();
-            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
-                .unwrap();
-            doc.add_block(Block::new("test1")).unwrap();
-            doc.pick("test", &[]).unwrap();
-            assert_eq!(doc.blocks.last().unwrap().name, "test");
+            doc.add_block(tagged("local", &["db"])).unwrap();
+            doc.add_block(Block::new("other")).unwrap();
+            doc.add_block(tagged("remote", &["db"])).unwrap();
+            doc.add_block(Block::new("server")).unwrap();
+            doc.pick("local", &[]).unwrap();
+            assert_eq!(
+                names(&doc),
+                vec![DEFAULT_BLOCK_NAME, "other", "remote", "local", "server"]
+            );
+        }
+
+        #[test]
+        fn pick_already_active_tagged_block_is_noop() {
+            let mut doc = Document::new();
+            doc.add_block(tagged("local", &["db"])).unwrap();
+            doc.add_block(tagged("remote", &["db"])).unwrap();
+            doc.add_block(Block::new("server")).unwrap();
+            doc.pick("remote", &[]).unwrap();
+            assert_eq!(
+                names(&doc),
+                vec![DEFAULT_BLOCK_NAME, "local", "remote", "server"]
+            );
         }
 
         #[test]
         fn pick_block_by_tag() {
             let mut doc = Document::new();
-            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
-                .unwrap();
-            doc.add_block(Block::new_with_tags("test", vec!["smtp".to_string()]))
-                .unwrap();
-            doc.pick("test", &["db".to_string()]).unwrap();
+            doc.add_block(tagged("local", &["db"])).unwrap();
+            doc.add_block(tagged("local", &["smtp"])).unwrap();
+            doc.add_block(tagged("remote", &["db"])).unwrap();
+            doc.pick("local", &["db".to_string()]).unwrap();
             let last = doc.blocks.last().unwrap();
-            assert_eq!(last.name, "test");
+            assert_eq!(last.name, "local");
             assert!(last.tags.contains("db"));
+            // the smtp block stayed ahead of the db group
+            assert!(doc.blocks[1].tags.contains("smtp"));
         }
 
         #[test]
-        fn pick_ambiguous_block_fails() {
+        fn pick_by_name_picks_all_matches() {
+            // remote[db] and remote[smtp] both slide after their groups
             let mut doc = Document::new();
-            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
+            doc.add_block(tagged("remote", &["db"])).unwrap();
+            doc.add_block(tagged("remote", &["smtp"])).unwrap();
+            doc.add_block(tagged("local", &["db"])).unwrap();
+            doc.add_block(tagged("local", &["smtp"])).unwrap();
+            doc.pick("remote", &[]).unwrap();
+            let identifiers: Vec<String> = doc.blocks.iter().map(|b| b.identifier()).collect();
+            assert_eq!(
+                identifiers,
+                vec![
+                    DEFAULT_BLOCK_NAME.to_string(),
+                    "local [db]".to_string(),
+                    "remote [db]".to_string(),
+                    "local [smtp]".to_string(),
+                    "remote [smtp]".to_string(),
+                ]
+            );
+        }
+
+        #[test]
+        fn pick_multi_tag_block_slides_after_union_of_groups() {
+            // remote[db, cache] must land after both local[db] and other[cache]
+            let mut doc = Document::new();
+            doc.add_block(tagged("remote", &["db", "cache"])).unwrap();
+            doc.add_block(tagged("local", &["db"])).unwrap();
+            doc.add_block(tagged("other", &["cache"])).unwrap();
+            doc.add_block(Block::new("server")).unwrap();
+            doc.pick("remote", &[]).unwrap();
+            assert_eq!(
+                names(&doc),
+                vec![DEFAULT_BLOCK_NAME, "local", "other", "remote", "server"]
+            );
+        }
+
+        #[test]
+        fn pick_single_tag_block_leaves_multi_tag_other_groups_alone() {
+            // picking local[db] past remote[db, cache] must not change the
+            // active cache block
+            let mut doc = Document::new();
+            doc.add_block(tagged("local", &["db"])).unwrap();
+            doc.add_block(tagged("other", &["cache"])).unwrap();
+            doc.add_block(tagged("remote", &["db", "cache"])).unwrap();
+            doc.pick("local", &[]).unwrap();
+            assert_eq!(
+                names(&doc),
+                vec![DEFAULT_BLOCK_NAME, "other", "remote", "local"]
+            );
+        }
+
+        #[test]
+        fn reserved_tags_do_not_group_blocks() {
+            // both blocks are __encrypted__ but resource tags differ, so
+            // picking one must not slide it after the other
+            let mut doc = Document::new();
+            doc.add_block(tagged("local", &["db", "__encrypted__"]))
                 .unwrap();
-            doc.add_block(Block::new_with_tags("test", vec!["smtp".to_string()]))
+            doc.add_block(tagged("local", &["smtp", "__encrypted__"]))
                 .unwrap();
-            let error = doc.pick("test", &[]).unwrap_err();
-            assert!(matches!(
-                error,
-                Error::AccessError(AccessErrors::AmbiguousBlock(_, _))
-            ));
+            doc.pick("local", &["db".to_string()]).unwrap();
+            assert!(doc.blocks[1].tags.contains("db"));
+            assert!(doc.blocks[2].tags.contains("smtp"));
+        }
+
+        #[test]
+        fn pick_untagged_block_moves_to_bottom() {
+            let mut doc = Document::new();
+            doc.add_block(Block::new("test")).unwrap();
+            doc.add_block(Block::new("test1")).unwrap();
+            doc.add_block(Block::new("test2")).unwrap();
+            doc.pick("test", &[]).unwrap();
+            assert_eq!(doc.blocks.last().unwrap().name, "test");
         }
 
         #[test]
         #[should_panic]
         fn pick_non_existing_tag_fails() {
             let mut doc = Document::new();
-            doc.add_block(Block::new_with_tags("test", vec!["db".to_string()]))
-                .unwrap();
+            doc.add_block(tagged("test", &["db"])).unwrap();
             doc.pick("test", &["nope".to_string()]).unwrap();
         }
     }
