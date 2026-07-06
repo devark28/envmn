@@ -3,7 +3,7 @@ use crate::parser::constants;
 use crate::parser::tokens::Block;
 use crate::parser::tokens::Document;
 use crate::parser::tokens::variable::Variable;
-use crate::parser::validators::{validate_block_name, validate_variable_name};
+use crate::parser::validators::{validate_block_name, validate_tag, validate_variable_name};
 use std::fs;
 use std::ops::Deref;
 
@@ -26,10 +26,36 @@ impl Parser {
         let lines = input.lines();
         for (idx, line) in lines.enumerate() {
             if line.starts_with(constants::BLOCK_START_SYMBOL) {
-                let name = match self.current_block.as_ref() {
-                    None => line
-                        .trim_start_matches(constants::BLOCK_START_SYMBOL)
-                        .trim(),
+                let (name, tags) = match self.current_block.as_ref() {
+                    None => {
+                        let identifier = line
+                            .trim_start_matches(constants::BLOCK_START_SYMBOL)
+                            .trim();
+                        let (start_tags_idx, end_tags_idx) = (
+                            identifier.find(constants::TAGS_START_SYMBOL),
+                            identifier.find(constants::TAGS_END_SYMBOL),
+                        );
+                        match (start_tags_idx, end_tags_idx) {
+                            (Some(start), Some(end)) if start < end => {
+                                if !identifier[end + 1..].trim().is_empty() {
+                                    return Err(Error::ParsingError(ParsingErrors::MalFormedTags(
+                                        idx as u16,
+                                    )));
+                                }
+                                let tags = identifier[start + 1..end]
+                                    .split(',')
+                                    .map(|s| s.trim().to_string())
+                                    .collect();
+                                (identifier[..start].trim(), tags)
+                            }
+                            (None, None) => (identifier, Vec::new()),
+                            _ => {
+                                return Err(Error::ParsingError(ParsingErrors::MalFormedTags(
+                                    idx as u16,
+                                )));
+                            }
+                        }
+                    }
                     Some(Block { name, .. }) => {
                         return Err(Error::ParsingError(ParsingErrors::NestedBlock(
                             idx as u16,
@@ -44,7 +70,10 @@ impl Parser {
                     )));
                 }
                 validate_block_name(idx as u16, name)?;
-                self.current_block = Some(Block::new(name));
+                for tag in &tags {
+                    validate_tag(idx as u16, tag)?;
+                }
+                self.current_block = Some(Block::new_with_tags(name, tags));
             } else if line.starts_with(constants::BLOCK_END_SYMBOL) {
                 let block = match self.current_block.take() {
                     Some(block) => block,

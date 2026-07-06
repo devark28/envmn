@@ -4,9 +4,13 @@ use std::fmt::{Display, Formatter};
 pub enum NamingErrors {
     BlockNameEmpty,
     VariableNameEmpty,
+    TagNameEmpty,
     BlockContainsInvalidCharacter(u16, String),
     VariableContainsInvalidCharacter(u16, String),
+    TagContainsInvalidCharacter(u16, String),
     StartsWithInvalidCharacter(u16, String),
+    TagStartsWithInvalidCharacter(u16, String),
+    UnknownReservedTag(u16, String),
 }
 
 impl Display for NamingErrors {
@@ -38,6 +42,26 @@ impl Display for NamingErrors {
                     "Line {0}: Block name starts with invalid character '{invalids}'",
                     line + 1
                 )
+            }
+            NamingErrors::TagNameEmpty => {
+                write!(f, "Tag name can not be empty")
+            }
+            NamingErrors::TagContainsInvalidCharacter(line, invalid_char) => {
+                write!(
+                    f,
+                    "Line {0}: Tag name contains invalid characters '{invalid_char}'",
+                    line + 1
+                )
+            }
+            NamingErrors::TagStartsWithInvalidCharacter(line, invalids) => {
+                write!(
+                    f,
+                    "Line {0}: Tag name starts with invalid character '{invalids}'",
+                    line + 1
+                )
+            }
+            NamingErrors::UnknownReservedTag(line, tag) => {
+                write!(f, "Line {0}: Unknown reserved tag '{tag}'", line + 1)
             }
         }
     }

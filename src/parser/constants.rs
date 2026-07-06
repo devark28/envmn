@@ -3,5 +3,7 @@ pub const BLOCK_END_SYMBOL: &str = "##";
 pub const KV_DELIMITER: &str = "=";
 pub const COMMENT_SYMBOL: &str = "#";
 pub const DEFAULT_BLOCK_NAME: &str = "default";
-/*pub const BLOCK_NAME_START_PAT: &str = r"^[^a-z_]";
-pub const BLOCK_NAME_MID_PAT: &str = r"[^a-z_0-9]";*/
+pub const TAGS_START_SYMBOL: &str = "[";
+pub const TAGS_END_SYMBOL: &str = "]";
+// TODO: use this encrypted block tag constant to detect encrypted blocks for decryption
+pub const ENCRYPTED_BLOCK_TAG: &str = "__encrypted__";

@@ -8,7 +8,7 @@ impl Engine {
             self.document
                 .get_blocks()
                 .iter()
-                .map(|b| format!("- {}", b.name))
+                .map(|b| format!("- {}", b.identifier()))
                 .collect::<Vec<_>>()
                 .join("\n")
         )
